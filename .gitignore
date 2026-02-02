@@ -1,5 +1,5 @@
 # Laravel specific
-/bootstrap/cache/*
+#/bootstrap/cache/*
 
 !/bootstrap/cache/.gitignore
 
