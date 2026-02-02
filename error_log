@@ -1,0 +1,6 @@
+[15-Apr-2025 20:40:59 UTC] PHP Fatal error:  Allowed memory size of 1610612736 bytes exhausted (tried to allocate 4096 bytes) in phar:///usr/local/bin/composer1.phar/src/Composer/DependencyResolver/Rule2Literals.php on line 53
+[07-May-2025 13:24:05 UTC] PHP Fatal error:  Allowed memory size of 1610612736 bytes exhausted (tried to allocate 83886080 bytes) in phar:///usr/local/bin/composer1.phar/src/Composer/DependencyResolver/RuleSet.php on line 90
+[07-May-2025 13:25:10 UTC] PHP Fatal error:  Allowed memory size of 1610612736 bytes exhausted (tried to allocate 83886080 bytes) in phar:///usr/local/bin/composer1.phar/src/Composer/DependencyResolver/RuleSet.php on line 90
+[07-May-2025 13:44:09 UTC] PHP Fatal error:  Allowed memory size of 1610612736 bytes exhausted (tried to allocate 4096 bytes) in phar:///usr/local/bin/composer1.phar/src/Composer/DependencyResolver/Rule2Literals.php on line 53
+[07-May-2025 16:27:24 UTC] PHP Fatal error:  Allowed memory size of 1610612736 bytes exhausted (tried to allocate 4096 bytes) in phar:///usr/local/bin/composer1.phar/src/Composer/DependencyResolver/Rule2Literals.php on line 53
+[14-May-2025 19:43:15 UTC] PHP Fatal error:  Cannot use empty array elements in arrays in /home/u742955118/domains/api.in-sourceit.com/public_html/database/seeders/HomePageSeeder.php on line 6396
