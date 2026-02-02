@@ -1,6 +1,6 @@
 # Laravel specific
 /bootstrap/cache/*
-/bootstrap/*.php
+
 !/bootstrap/cache/.gitignore
 
 # Dependencies
