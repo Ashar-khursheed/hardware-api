@@ -3,9 +3,7 @@
 namespace App\Repositories\Eloquents;
 
 use Exception;
-use App\Models\Zone;
 use App\Models\Category;
-use App\Helpers\Helpers;
 use App\Imports\CategoryImport;
 use App\Exports\CategoriesExport;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +22,7 @@ class CategoryRepository extends BaseRepository
     {
         try {
 
-            return $this->model->with('subcategories.parent')->findOrFail($id)?->toJson();
+            return $this->model->with('subcategories.parent')->findOrFail($id);
 
         } catch (Exception $e){
 
@@ -48,36 +46,11 @@ class CategoryRepository extends BaseRepository
                 'category_image_id' => $request->category_image_id,
                 'category_icon_id'   => $request->category_icon_id,
                 'commission_rate' => $request->commission_rate,
-                'parent_id' => $request->parent_id,
-                'is_allow_all_zone' => $request->is_allow_all_zone,
-                'slug' => $request->slug
+                'parent_id' => $request->parent_id
             ]);
-
-            if ($request->is_allow_all_zone) {
-                $category->zones()->attach(Zone::whereNull('deleted_at')->get());
-            }
-
-            if (isset($request->zone_ids)) {
-                $category->zones()->attach($request->zone_ids ?? []);
-                $category->zones;
-            }
-
-            if (isset($request->exclude_zone_ids)){
-                $category->exclude_zones()->attach($request->exclude_zone_ids ?? []);
-                $category->exclude_zones;
-            }
 
             $category->category_image;
             $category->category_icon;
-
-            $locales =  Helpers::getAllActiveLocales();
-            foreach ($locales as $locale) {
-                $category->setTranslation('name', $locale, $request['name'])
-                    ->setTranslation('description', $locale, $request['description'])
-                    ->setTranslation('meta_title', $locale, $request['meta_title'])
-                    ->setTranslation('meta_description', $locale, $request['meta_description'])
-                    ->save();
-            }
 
             DB::commit();
             return $category;
@@ -97,21 +70,6 @@ class CategoryRepository extends BaseRepository
             $category = $this->model->findOrFail($id);
             $category->update($request);
 
-            if (!$request['is_allow_all_zone']) {
-                $category->zones()->sync($request['zone_ids'] ?? []);
-                if (isset($request['exclude_zone_ids'])){
-                    $category->exclude_zones()->sync([]);
-                    $category->exclude_zones()->sync($request['exclude_zone_ids']);
-                }
-            }
-
-            if ($request['is_allow_all_zone']) {
-                $category->exclude_zones()->sync([]);
-                $category->zones()->sync([]);
-                $zoneIds = Zone::whereNull('deleted_at')?->get()?->pluck('id')?->toArray();
-                $category->zones()->sync($zoneIds);
-            }
-
             if (isset($request['category_image_id'])) {
                 $category->category_image()->associate($request['category_image_id']);
             }
@@ -120,17 +78,10 @@ class CategoryRepository extends BaseRepository
                 $category->category_icon()->associate($request['category_icon_id']);
             }
 
-            if (isset($request['zones'])) {
-                $category->zones()->sync($request['zones']);
-            }
-
             $category->category_image;
             $category->category_icon;
 
-            $this->setTranslation($category, $request);
-
             DB::commit();
-
             return $category;
 
         } catch (Exception $e) {
@@ -189,7 +140,7 @@ class CategoryRepository extends BaseRepository
     {
         try {
 
-            return route('admin.categories.export');
+            return route('categories.export');
 
         } catch (Exception $e) {
 
@@ -219,15 +170,5 @@ class CategoryRepository extends BaseRepository
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    function setTranslation($category, $request)
-    {
-        $locale = app()->getLocale();
-        return $category->setTranslation('name', $locale, $request['name'])
-            ->setTranslation('description', $locale, $request['description'])
-            ->setTranslation('meta_title', $locale, $request['meta_title'])
-            ->setTranslation('meta_description', $locale, $request['meta_description'])
-            ->save();
     }
 }

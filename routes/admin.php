@@ -1,12 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AnnouncementController;
-
-Route::get('/announcement', [AnnouncementController::class, 'index']);
-Route::post('/announcement', [AnnouncementController::class, 'store']);
-Route::put('/announcement/{id}', [AnnouncementController::class, 'update']);
-Route::delete('/announcement/{id}', [AnnouncementController::class, 'destroy']);
 
 /*
 |--------------------------------------------------------------------------
@@ -20,15 +14,8 @@ Route::delete('/announcement/{id}', [AnnouncementController::class, 'destroy']);
 */
 
 // Countries & States
-Route::apiResource('state', 'App\Http\Controllers\StateController')->names([
-    'index' => 'admin.state.index',
-    'store' => 'admin.state.store',
-    'show' => 'admin.state.show',
-    'update' => 'admin.state.update',
-    'destroy' => 'admin.state.destroy',
-]);
+Route::apiResource('state', 'App\Http\Controllers\StateController');
 Route::apiResource('country', 'App\Http\Controllers\CountryController');
-
 
 // Authentication
 Route::post('/login', 'App\Http\Controllers\AuthController@backendLogin');
@@ -44,15 +31,6 @@ Route::get('settings', 'App\Http\Controllers\SettingController@index');
 Route::apiResource('store', 'App\Http\Controllers\StoreController', [
   'only' => ['store'],
 ]);
-
-// Translation
-Route::get('translation/', 'App\Http\Controllers\LanguageController@getFilesInFolder');
-Route::get('translation/{filename}', 'App\Http\Controllers\LanguageController@getFileContent');
-
-Route::prefix('admin/{lang}')->group(function () {
-    Route::get('translation/', 'App\Http\Controllers\LanguageController@getFilesInFolder');
-    Route::get('translation/{filename}', 'App\Http\Controllers\LanguageController@getFileContent');
-});
 
 Route::group(['middleware' => ['localization','auth:sanctum']], function () {
 
@@ -85,74 +63,6 @@ Route::group(['middleware' => ['localization','auth:sanctum']], function () {
   // Dashboard
   Route::get('statistics/count', 'App\Http\Controllers\DashboardController@index');
   Route::get('dashboard/chart', 'App\Http\Controllers\DashboardController@chart');
-
-  // Reports
-  Route::get('reports', 'App\Http\Controllers\ReportController@getReports');
-  Route::prefix('reports')->name('reports.')->group(function () {
-
-      Route::get('fields', 'App\Http\Controllers\ReportController@getFields');
-      Route::get('fields/{report}', 'App\Http\Controllers\ReportController@getReportFields');
-
-      // Coupon Report
-      Route::get('coupon', 'App\Http\Controllers\ReportController@couponReport')->name('coupon');
-      Route::get('coupon/export', 'App\Http\Controllers\ReportController@exportCouponReport')->name('coupon.export');
-
-      // Product Sale Report
-      Route::get('product-sale', 'App\Http\Controllers\ReportController@productSaleReport')->name('product-sale');
-      Route::get('product-sale/export', 'App\Http\Controllers\ReportController@exportProductSaleReport')->name('product-sale.export');
-
-      // Vendor Product Sale Report
-      Route::get('vendor-product-sale', 'App\Http\Controllers\ReportController@vendorProductSaleReport')->name('vendor-product-sale');
-      Route::get('vendor-product-sale/export', 'App\Http\Controllers\ReportController@exportVendorProductSaleReport')->name('vendor-product-sale.export');
-
-      // Wishlist Report
-      Route::get('wishlist', 'App\Http\Controllers\ReportController@wishlistReport')->name('wishlist');
-      Route::get('wishlist/export', 'App\Http\Controllers\ReportController@exportWishlistReport')->name('wishlist.export');
-
-      // Cart Report
-      Route::get('cart', 'App\Http\Controllers\ReportController@cartReport')->name('cart');
-      Route::get('cart/export', 'App\Http\Controllers\ReportController@exportCartReport')->name('cart.export');
-
-      // Tax Report
-      Route::get('tax', 'App\Http\Controllers\ReportController@taxReport')->name('tax');
-
-      // Product in-stock Report
-      Route::get('products/in-stock', 'App\Http\Controllers\ReportController@productInStockReport')->name('products.in-stock');
-      Route::get('products/in-stock/export', 'App\Http\Controllers\ReportController@exportProductInStockReport')->name('products.in-stock.export');
-
-      // Product in-stock Report
-      Route::get('products/out-of-stock', 'App\Http\Controllers\ReportController@productOutOfStockReport')->name('products.out-of-stock');
-      Route::get('products/out-of-stock/export', 'App\Http\Controllers\ReportController@exportProductOutOfStockReport')->name('products.out-of-stock.export');
-
-      // Top Selling Products Report
-      Route::get('products/top-selling', 'App\Http\Controllers\ReportController@topSellingProducts')->name('products.top-selling');
-      Route::get('products/top-selling/export', 'App\Http\Controllers\ReportController@exportTopSellingProducts')->name('products.top-selling.export');
-
-      // Category Product Selling Report
-      Route::get('category-sale', 'App\Http\Controllers\ReportController@categorySaleReport')->name('category-sale');
-      Route::get('category-sale/export', 'App\Http\Controllers\ReportController@exportCategorySaleReport')->name('category-sale.export');
-
-      // Top Customers By Orders Report
-      Route::get('customers/top-orders', 'App\Http\Controllers\ReportController@topCustomersByOrders')->name('customers.top-orders');
-
-      // Top Brand By Orders Report
-      Route::get('brands/top-orders', 'App\Http\Controllers\ReportController@topBrandsByOrders')->name('brands.top-orders');
-
-      // Payment gateways Report
-      Route::get('payment-gateways', 'App\Http\Controllers\ReportController@paymentGatewaysReport')->name('payment-gateways');
-      Route::get('payment-gateways/export', 'App\Http\Controllers\ReportController@exportPaymentGatewaysReport')->name('payment-gateways.export');
-
-      // Transaction Report
-      Route::get('transaction', 'App\Http\Controllers\ReportController@transactionReport')->name('transaction');
-      Route::get('transaction/export', 'App\Http\Controllers\ReportController@exportTransactionReport')->name('transaction.export');
-
-      // Tax Report
-      Route::get('tax', 'App\Http\Controllers\ReportController@taxReport')->name('tax');
-
-      // Highest Vendor Commissions
-      Route::get('vendor-commissions', 'App\Http\Controllers\ReportController@highestVendorCommissions')->name('commission');
-
-  });
 
   // Users
   Route::apiResource('user', 'App\Http\Controllers\UserController');
@@ -326,20 +236,6 @@ Route::group(['middleware' => ['localization','auth:sanctum']], function () {
   Route::post('notice/deleteAll', 'App\Http\Controllers\NoticeController@deleteAll')->middleware('can:notice.destroy');
   Route::apiResource('notice', 'App\Http\Controllers\NoticeController');
 
-   // Authors
-   Route::apiResource('author', 'App\Http\Controllers\AuthorController');
-   Route::post('author/deleteAll', 'App\Http\Controllers\AuthorController@deleteAll')->middleware('can:author.destroy');
-   Route::put('author/{id}/{status}', 'App\Http\Controllers\AuthorController@status')->middleware('can:author.edit');
-
-   // Publications
-   Route::apiResource('publication', 'App\Http\Controllers\PublicationController');
-   Route::post('publication/deleteAll', 'App\Http\Controllers\PublicationController@deleteAll')->middleware('can:publication.destroy');
-   Route::put('publication/{id}/{status}', 'App\Http\Controllers\PublicationController@status')->middleware('can:publication.edit');
-
-   // Zone
-   Route::apiResource('zone', 'App\Http\Controllers\ZoneController');
-   Route::put('zone/{id}/{status}', 'App\Http\Controllers\ZoneController@status');
-
   // Themes
   Route::apiResource('theme', 'App\Http\Controllers\ThemeController');
 
@@ -354,18 +250,10 @@ Route::group(['middleware' => ['localization','auth:sanctum']], function () {
   Route::apiResource('menu', 'App\Http\Controllers\MenuController');
   Route::post('menu/sort', 'App\Http\Controllers\MenuController@sort')->middleware('can:menu.edit');
 
-  // languages
-  Route::put('language/{id}/{status}', 'App\Http\Controllers\LanguageController@status');
-  Route::put('language/rtl/{id}/{rtl}', 'App\Http\Controllers\LanguageController@rtl');
-  Route::apiResource('language', 'App\Http\Controllers\LanguageController');
-
-  // Translation
-  Route::put('translation/{filename}', 'App\Http\Controllers\LanguageController@saveFileContent');
-
   // App Settings
   Route::get('app/settings', 'App\Http\Controllers\AppSettingController@index');
   Route::put('app/settings', 'App\Http\Controllers\AppSettingController@update')->middleware('can:app_setting.edit');
 
   // Settings
-  Route::put('settings', 'App\Http\Controllers\SettingController@update')->middleware('can:app_setting.edit');
+  Route::put('settings', 'App\Http\Controllers\SettingController@update')->middleware('can:setting.edit');
 });

@@ -56,7 +56,7 @@ class LicenseKeyRepository extends BaseRepository
             return true;
         }
 
-        throw new Exception(__('errors.invalid_digital_product_id'), 422);
+        throw new Exception("Provided product id isn't for a digital product.", 422);
     }
 
     public function store($request)
@@ -164,7 +164,7 @@ class LicenseKeyRepository extends BaseRepository
     {
         try {
 
-            return route('admin.license_keys.export');
+            return route('license_keys.export');
 
         } catch (Exception $e) {
 

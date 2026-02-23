@@ -4,7 +4,6 @@ namespace App\Repositories\Eloquents;
 
 use Exception;
 use App\Models\Tax;
-use App\Helpers\Helpers;
 use Illuminate\Support\Facades\DB;
 use App\GraphQL\Exceptions\ExceptionHandler;
 use Prettus\Repository\Eloquent\BaseRepository;
@@ -37,7 +36,7 @@ class TaxRepository extends BaseRepository
     {
         try {
 
-            return $this->model->findOrFail($id)?->toJson();
+            return $this->model->findOrFail($id);
 
         } catch (Exception $e){
 
@@ -56,11 +55,6 @@ class TaxRepository extends BaseRepository
                 'status' => $request->status,
             ]);
 
-            $locales =  Helpers::getAllActiveLocales();
-            foreach ($locales as $locale) {
-                $tax->setTranslation('name', $locale, $request['name'])->save();
-            }
-
             DB::commit();
             return $tax;
 
@@ -78,8 +72,6 @@ class TaxRepository extends BaseRepository
 
             $tax = $this->model->findOrFail($id);
             $tax->update($request);
-
-            $this->setTranslation($tax, $request);
 
             DB::commit();
             return $tax;
@@ -128,11 +120,5 @@ class TaxRepository extends BaseRepository
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    function setTranslation($tax, $request)
-    {
-        $locale = app()->getLocale();
-        return $tax->setTranslation('name', $locale, $request['name'])->save();
     }
 }

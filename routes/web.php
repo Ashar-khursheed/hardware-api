@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Artisan;
 */
 
 Route::get('/', function () {
-    return response()->json(['message' => 'Hardware API is running.']);
+    return to_route('install.completed');
 });
 
 // Clear Cache

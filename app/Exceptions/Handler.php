@@ -57,8 +57,8 @@ class Handler extends ExceptionHandler
 
             if ($exception instanceof NotFoundHttpException) {
 
-                if ($request->hasHeader("Accept-Lang")) {
-                    app()->setLocale($request->header("Accept-Lang"));
+                if ($request->hasHeader("Accept-Language")) {
+                    app()->setLocale($request->header("Accept-Language"));
                 }
 
                 throw new GraphQLExceptionHandler($exception->getMessage(), 400);
@@ -66,8 +66,8 @@ class Handler extends ExceptionHandler
 
             if ($exception instanceof InvalidSignatureException) {
 
-                if ($request->hasHeader("Accept-Lang")) {
-                    app()->setLocale($request->header("Accept-Lang"));
+                if ($request->hasHeader("Accept-Language")) {
+                    app()->setLocale($request->header("Accept-Language"));
                 }
 
                 throw new GraphQLExceptionHandler($exception->getMessage(), 403);
@@ -75,8 +75,8 @@ class Handler extends ExceptionHandler
 
             if ($exception instanceof RouteNotFoundException) {
 
-                if ($request->hasHeader("Accept-Lang")) {
-                    app()->setLocale($request->header("Accept-Lang"));
+                if ($request->hasHeader("Accept-Language")) {
+                    app()->setLocale($request->header("Accept-Language"));
                 }
 
                 throw new GraphQLExceptionHandler($exception->getMessage(), 400);

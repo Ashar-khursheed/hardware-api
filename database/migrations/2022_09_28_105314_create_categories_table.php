@@ -28,7 +28,6 @@ return new class extends Migration
             $table->string('type')->default('post');
             $table->decimal('commission_rate',8,2)->default(0.0)->nullable();
             $table->unsignedBigInteger('parent_id')->nullable();
-            $table->integer('is_allow_all_zone')->default(0)->nullable();
             $table->bigInteger('created_by_id')->unsigned()->nullable();
             $table->timestamps();
             $table->softDeletes();
@@ -38,24 +37,6 @@ return new class extends Migration
             $table->foreign('category_icon_id')->references('id')->on('attachments')->onDelete('cascade');
             $table->foreign('parent_id')->references('id')->on('categories')->onDelete('cascade');
             $table->foreign('created_by_id')->references('id')->on('users')->onDelete('cascade');
-        });
-
-        Schema::create('category_zones', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('category_id');
-            $table->unsignedBigInteger('zone_id');
-
-            $table->foreign('category_id')->references('id')->on('categories')->onDelete('cascade')->nullable();
-            $table->foreign('zone_id')->references('id')->on('zones')->onDelete('cascade')->nullable();
-        });
-
-        Schema::create('exclude_zone_categories', function (Blueprint $table) {
-            $table->id();
-            $table->bigInteger('zone_id')->unsigned()->nullable();
-            $table->bigInteger('category_id')->unsigned()->nullable();
-
-            $table->foreign('zone_id')->references('id')->on('zones')->onDelete('cascade');
-            $table->foreign('category_id')->references('id')->on('categories')->onDelete('cascade');
         });
     }
 
@@ -67,7 +48,5 @@ return new class extends Migration
     public function down()
     {
         Schema::dropIfExists('categories');
-        Schema::dropIfExists('category_zones');
-        Schema::dropIfExists('exclude_zone_categories');
     }
 };

@@ -15,21 +15,8 @@ use Illuminate\Support\Facades\Route;
 
 
 // Countries & States
-Route::apiResource('state', 'App\Http\Controllers\StateController')->names([
-    'index' => 'api.state.index',
-    'store' => 'api.state.store',
-    'show' => 'api.state.show',
-    'update' => 'api.state.update',
-    'destroy' => 'api.state.destroy',
-]);
-Route::apiResource('country', 'App\Http\Controllers\CountryController')->names([
-    'index' => 'admin.country.index.unique', // updated name to avoid conflict
-    'store' => 'admin.country.store',
-    'show' => 'admin.country.show',
-    'update' => 'admin.country.update',
-    'destroy' => 'admin.country.destroy',
-]);
-
+Route::apiResource('state', 'App\Http\Controllers\StateController');
+Route::apiResource('country', 'App\Http\Controllers\CountryController');
 
 // Settings & Theme Options
 Route::get('settings', 'App\Http\Controllers\SettingController@index');
@@ -184,33 +171,6 @@ Route::any('trackOrder/{uuid?}', 'App\Http\Controllers\OrderController@trackOrde
 Route::get('download/zip/file/{token}/{id}', 'App\Http\Controllers\DownloadController@downloadZip')->middleware('signed')->name('download.zip.link');
 Route::get('download/key/file/{token}/{id}', 'App\Http\Controllers\DownloadController@downloadKey')->middleware('signed')->name('download.key.link');
 Route::get('download/admin/zip/file/{product_id}/{variation_id?}', 'App\Http\Controllers\DownloadController@adminDownloadZip')->middleware('signed')->name('admin.download.zip.link');
-
-// languages
-Route::apiResource('language', 'App\Http\Controllers\LanguageController', [
-  'only' => ['index', 'show'],
-]);
-
-// Translation
-Route::get('translation/', 'App\Http\Controllers\LanguageController@getFilesInFolder');
-Route::get('translation/{filename}', 'App\Http\Controllers\LanguageController@getFileContent');
-
-// Zone
-Route::apiResource('zone', 'App\Http\Controllers\ZoneController', [
-'only' => ['index', 'show'],
-]);
-Route::get('zone-by-point', 'App\Http\Controllers\ZoneController@getZoneIds')->name('get.zoneId');
-
-// Authors
-Route::apiResource('author', 'App\Http\Controllers\AuthorController', [
-'only' => ['index', 'show'],
-]);
-Route::get('author/slug/{slug}', 'App\Http\Controllers\AuthorController@getAuthorBySlug');
-
-// Publication
-Route::apiResource('publication', 'App\Http\Controllers\PublicationController', [
-'only' => ['index', 'show'],
-]);
-Route::get('publication/slug/{slug}', 'App\Http\Controllers\PublicationController@getPublicationBySlug');
 
 Route::group(['middleware' => ['localization','auth:sanctum']], function () {
 

@@ -22,8 +22,6 @@ class HomePageRepository extends BaseRepository
         try {
 
             $homePage = $this->model->findOrFail($id);
-            $this->setTranslation($homePage, $request);
-            unset($request['content']);
             $homePage->update($request);
 
             DB::commit();
@@ -34,14 +32,5 @@ class HomePageRepository extends BaseRepository
             DB::rollback();
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    public function setTranslation($homePage, $request)
-    {
-        $locale = app()->getLocale();
-
-        $homePage->setTranslation('content', $locale, $request['content']);
-
-        return $homePage->save();
     }
 }

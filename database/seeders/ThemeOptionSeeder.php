@@ -38,7 +38,6 @@ class ThemeOptionSeeder extends Seeder
         'celebration_effect' => true,
         'seller_register_url' => 'https://angular.pixelstrap.net/multikart-rest',
         'exit_tagline_enable' => true,
-        'customizer_enable' => true,
         'taglines' => [
           '⚡ Come Back !!',
           '🎉 Offers for you...'
@@ -211,17 +210,17 @@ class ThemeOptionSeeder extends Seeder
             'description' => 'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium,\n\nOn the other hand, we denounce with righteous indignation and dislike men who are so beguiled and demoralized by the charms of pleasure of the moment, so blinded by desire, that they cannot foresee the pain and trouble that are bound to ensue; and equal blame belongs to those who fail in their duty through weakness of will, which is the same as saying through shrinking from toil and pain. These cases are perfectly simple and easy to distinguish. In a free hour, when our power of choice is untrammelled and when nothing prevents our being able to do what we like best, every pleasure is to be welcomed and every pain avoided. But in certain circumstances and owing to the claims of duty or the obligations of business it will frequently occur that pleasures have to be repudiated and annoyances accepted. The wise man therefore always holds in these matters to this principle of selection: he rejects pleasures to secure other greater pleasures, or else he endures pains to avoid worse pains.',
             'futures' => [
                 [
-                    'icon' => '/frontend/images/tools/service.png',
+                    'icon' => null,
                     'title' => 'Free Shipping',
                     'description' => 'Free Shipping World Wide'
                 ],
                 [
-                    'icon' => '/frontend/images/tools/service.png',
+                    'icon' => null,
                     'title' => '24 X 7 Service',
                     'description' => 'Online Service For New Customer'
                 ],
                 [
-                    'icon' => '/frontend/images/tools/service.png',
+                    'icon' => null,
                     'title' => 'Festival Offer',
                     'description' => 'New Online Special Festival Offer'
                 ]
@@ -235,7 +234,7 @@ class ThemeOptionSeeder extends Seeder
                 [
                     'profile_image_url' => '/frontend/images/data/team-members.png',
                     'name' => 'Hileri Keol',
-                    'designation' => 'CEO & Founder At Company',
+                    'designation' => 'CEo & Founder At Company',
                     'instagram' => 'https://instagram.com/',
                     'twitter' => 'https://twitter.com/',
                     'pinterest' => 'https://pinterest.com/',

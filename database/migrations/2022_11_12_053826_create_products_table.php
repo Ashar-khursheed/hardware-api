@@ -56,13 +56,6 @@ return new class extends Migration
             $table->string('slug')->nullable();
             $table->integer('status')->default(1);
             $table->unsignedBigInteger('store_id')->nullable();
-
-            $table->string('external_details')->nullable();
-            $table->string('visible_time')->nullable();
-            $table->longText('read_button_text')->nullable();
-            $table->longText('read_document_id')->nullable();
-            $table->unsignedBigInteger('publication_id')->nullable();
-
             $table->unsignedBigInteger('created_by_id')->nullable();
             $table->unsignedBigInteger('tax_id')->nullable();
             $table->enum('preview_type',['audio','video','url'])->nullable();
@@ -229,17 +222,6 @@ return new class extends Migration
             $table->foreign('variation_id')->references('id')->on('variations')->onDelete('cascade')->nullable();
             $table->foreign('attachment_id')->references('id')->on('attachments')->onDelete('cascade')->nullable();
         });
-
-        Schema::create('product_authors', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('author_id');
-            $table->unsignedBigInteger('product_id');
-            $table->softDeletes();
-            $table->timestamps();
-
-            $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade')->nullable();
-            $table->foreign('author_id')->references('id')->on('authors')->onDelete('cascade')->nullable();
-        });
     }
 
     /**
@@ -257,6 +239,5 @@ return new class extends Migration
         Schema::dropIfExists('variation_images');
         Schema::dropIfExists('related_products');
         Schema::dropIfExists('cross_sell_products');
-        Schema::dropIfExists('product_authors');
     }
 };

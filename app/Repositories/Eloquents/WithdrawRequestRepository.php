@@ -69,11 +69,11 @@ class WithdrawRequestRepository extends BaseRepository
     public function verifyPaymentAccount($request, $vendorPaymentAccount)
     {
         if (!$vendorPaymentAccount) {
-            throw new Exception(__('errors.payment_account_before_withdrawal'), 400);
+            throw new Exception("Please create a payment account before applying for a withdrawal.", 400);
         }
 
         if ($request->payment_type == PaymentType::PAYPAL && !$vendorPaymentAccount->paypal_email) {
-            throw new Exception(__('errors.paypal_email_before_withdrawal'), 400);
+            throw new Exception("Please add a paypal email before applying for a withdrawal.", 400);
         }
 
         if ($request->payment_type == PaymentType::BANK && !$vendorPaymentAccount->paypal_email) {
@@ -81,7 +81,7 @@ class WithdrawRequestRepository extends BaseRepository
                 || !$vendorPaymentAccount->bank_name
                 || !$vendorPaymentAccount->bank_holder_name) {
 
-                throw new Exception(__('errors.bank_detail_required_before_withdrawal'), 400);
+                throw new Exception("Please complete a bank detail before applying for a withdrawal.", 400);
             }
         }
     }
@@ -106,11 +106,11 @@ class WithdrawRequestRepository extends BaseRepository
             $minWithdrawAmount = $settings['vendor_commissions']['min_withdraw_amount'];
 
             if ($minWithdrawAmount > $request->amount) {
-                throw new Exception(__('errors.required_min_withdrawal_amount', ['minWithdrawAmount' => $minWithdrawAmount]), 400);
+                throw new Exception("Make sure your requested amount is at least $minWithdrawAmount.", 400);
             }
 
             if ($vendorBalance < $request->amount) {
-                throw new Exception(__('errors.insufficient_wallet_balance_vendor'), 400);
+                throw new Exception("Your wallet balance is not enough to process this withdrawal.", 400);
             }
 
             $withdrawRequest =  $this->model->create([
@@ -144,7 +144,7 @@ class WithdrawRequestRepository extends BaseRepository
             $roleName = Helpers::getCurrentRoleName();
             $withdrawRequest = $this->model->findOrFail($id);
             if ($roleName == RoleEnum::VENDOR) {
-                throw new Exception(__('errors.unauthorized_role',['roleName' => $roleName]), 403);
+                throw new Exception("Unauthorized for $roleName", 403);
             }
 
             if (isset($request['is_used'])) {

@@ -5,7 +5,6 @@ namespace App\Notifications;
 use App\Models\Order;
 use App\Enums\RoleEnum;
 use App\Helpers\Helpers;
-use App\SMS\CancelOrderSMS;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -33,34 +32,7 @@ class CancelOrderNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return [CancelOrderSMS::class,'database','mail'];
-    }
-
-    public static function toSend(object $notifiable)
-    {
-        switch(self::$roleName) {
-            case RoleEnum::CONSUMER:
-                return self::toConsumerSMS($notifiable);
-            case RoleEnum::VENDOR:
-                return self::toVendorSMS($notifiable);
-            case RoleEnum::ADMIN:
-                return self::toAdminSMS($notifiable);
-        }
-    }
-
-    public function toAdminSMS($notifiable)
-    {
-        return (new CancelOrderSMS)->sendSMS($notifiable, $this->roleName, $this->order);
-    }
-
-    public function toVendorSMS($notifiable)
-    {
-        return (new CancelOrderSMS)->sendSMS($notifiable, $this->roleName, $this->order);
-    }
-
-    public function toConsumerSMS($notifiable)
-    {
-        return (new CancelOrderSMS)->sendSMS($notifiable, $this->roleName, $this->order);
+        return ['mail','database'];
     }
 
     /**
@@ -68,16 +40,13 @@ class CancelOrderNotification extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $settings = Helpers::getSettings();
-        if($settings['email']['cancel_order_mail']) {
-            switch($this->roleName) {
-                case RoleEnum::CONSUMER:
-                   return $this->toConsumerMail();
-                case RoleEnum::VENDOR:
-                    return $this->toVendorMail();
-                case RoleEnum::ADMIN:
-                    return $this->toAdminMail();
-            }
+        switch($this->roleName) {
+            case RoleEnum::CONSUMER:
+               return $this->toConsumerMail();
+            case RoleEnum::VENDOR:
+                return $this->toVendorMail();
+            case RoleEnum::ADMIN:
+                return $this->toAdminMail();
         }
     }
 
@@ -125,21 +94,20 @@ class CancelOrderNotification extends Notification
     {
         switch($this->roleName) {
             case RoleEnum::CONSUMER:
-                $message = __('notifications.cancel_order_consumer',['orderNumber' => $this->order->order_number]);
+                $message = "Your order (#{$this->order->order_number}) has been cancelled.";
                 break;
             case RoleEnum::VENDOR:
-                $message = __('notifications.cancel_order_vendor',['orderNumber' => $this->order->order_number]);
+                $message = "Order (#{$this->order->order_number}) from your catalog has been cancelled.";
                 break;
             case RoleEnum::ADMIN:
-                $message = __('notifications.cancel_order_admin',['orderNumber' => $this->order->order_number]);
+                $message = "Order #{$this->order->order_number} has been cancelled.";
                 break;
         }
 
         return [
-            'title' => __('notifications.cancel_order_title_order_'),
+            'title' => "Order has been cancelled",
             'message' => $message,
-            'type' => "order",
-            'order_number' => $this->order?->order_number
+            'type' => "order"
         ];
     }
 }

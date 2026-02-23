@@ -36,7 +36,7 @@ class ThemeRepository extends BaseRepository
     {
         try {
 
-            return $this->model->findOrFail($id)?->toJson();
+            return $this->model->findOrFail($id);
 
         } catch (Exception $e){
 
@@ -54,18 +54,12 @@ class ThemeRepository extends BaseRepository
             $theme->update($request);
 
             DB::commit();
-            return $theme?->toJson();
+            return $theme;
 
         } catch (Exception $e){
 
             DB::rollback();
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    function setTranslation($theme, $request)
-    {
-        $locale = app()->getLocale();
-        return $theme->setTranslation('name', $locale, $request['name'])->save();
     }
 }

@@ -52,11 +52,9 @@ class AccountRepository extends BaseRepository
                 $query->whereNull('parent_id');
             }])->with(config('enums.user.with'))->findOrFail($user_id);
 
-            $user->setAppends([
+            return $user->setAppends([
                 'role', 'permission', 'store'
             ]);
-
-            return $user?->toJson();
 
         } catch (Exception $e) {
 
@@ -101,7 +99,6 @@ class AccountRepository extends BaseRepository
             $user->address;
             DB::commit();
 
-            $user = $user->fresh();
             return $user;
 
         } catch (Exception $e) {

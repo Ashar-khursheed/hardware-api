@@ -85,12 +85,12 @@ class StoreRepository extends BaseRepository
                     'youtube'=> $request->youtube,
                     'pinterest'=> $request->pinterest,
                     'store_logo_id'=> $request->store_logo_id,
+                    'store_cover_id'=> $request->store_cover_id,
                     'hide_vendor_email' => $request->hide_vendor_email,
                     'hide_vendor_phone' => $request->hide_vendor_phone,
                     'vendor_id' => $user->id,
                     'status' => $request->status,
                     'is_approved' => $settings['activation']['store_auto_approve'],
-                    'slug' => $request->slug
                 ]);
 
                 $store->vendor->vendor_wallet()->create();
@@ -103,7 +103,7 @@ class StoreRepository extends BaseRepository
                 return $store;
             }
 
-            throw new Exception(__('auth.multi_vendor_deactivated'), 403);
+            throw new Exception('The multi-vendor feature is currently deactivated.', 403);
 
         } catch (Exception $e) {
 
@@ -121,6 +121,10 @@ class StoreRepository extends BaseRepository
             $store->update($request);
             if (isset($request['store_logo_id'])) {
                 $store->store_logo()->associate($request['store_logo_id']);
+            }
+
+            if (isset($request['store_cover_id'])) {
+                $store->store_cover()->associate($request['store_cover_id']);
             }
 
             $store->vendor->makeHidden(['store']);

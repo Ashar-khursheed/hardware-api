@@ -4,7 +4,6 @@ namespace App\Repositories\Eloquents;
 
 use Exception;
 use App\Models\Tag;
-use App\Helpers\Helpers;
 use App\Imports\TagImport;
 use App\Exports\TagsExport;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +39,7 @@ class TagRepository extends BaseRepository
     {
         try {
 
-            return $this->model->findOrFail($id)?->toJson();
+            return $this->model->findOrFail($id);
 
         } catch (Exception $e){
 
@@ -58,15 +57,7 @@ class TagRepository extends BaseRepository
                 'description' => $request->description,
                 'type' => $request->type,
                 'status' => $request->status,
-                'slug' => $request->slug
             ]);
-
-            $locales =  Helpers::getAllActiveLocales();
-            foreach ($locales as $locale) {
-                $tag->setTranslation('name', $locale, $request['name'])
-                    ->setTranslation('description', $locale, $request['description'])
-                    ->save();
-            }
 
             DB::commit();
             return $tag;
@@ -85,7 +76,7 @@ class TagRepository extends BaseRepository
 
             $tag = $this->model->findOrFail($id);
             $tag->update($request);
-            $this->setTranslation($tag, $request);
+
             DB::commit();
             return $tag;
 
@@ -157,7 +148,7 @@ class TagRepository extends BaseRepository
     {
         try {
 
-            return route('admin.tags.export');
+            return route('tags.export');
 
         } catch (Exception $e) {
 
@@ -175,14 +166,6 @@ class TagRepository extends BaseRepository
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    function setTranslation($tag, $request)
-    {
-        $locale = app()->getLocale();
-        return $tag->setTranslation('name', $locale, $request['name'])
-            ->setTranslation('description', $locale, $request['description'])
-            ->save();
     }
 }
 

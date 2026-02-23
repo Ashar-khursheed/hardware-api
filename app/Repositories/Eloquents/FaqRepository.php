@@ -4,7 +4,6 @@ namespace App\Repositories\Eloquents;
 
 use Exception;
 use App\Models\Faq;
-use App\Helpers\Helpers;
 use Illuminate\Support\Facades\DB;
 use App\GraphQL\Exceptions\ExceptionHandler;
 use Prettus\Repository\Eloquent\BaseRepository;
@@ -39,7 +38,7 @@ class FaqRepository extends BaseRepository
     {
         try {
 
-            return $this->model->findOrFail($id)?->toJson();
+            return $this->model->findOrFail($id);
 
         } catch (Exception $e){
 
@@ -58,13 +57,6 @@ class FaqRepository extends BaseRepository
                 'status' => $request->status
             ]);
 
-            $locales =  Helpers::getAllActiveLocales();
-            foreach ($locales as $locale) {
-                $faq->setTranslation('title', $locale, $request['title'])
-                    ->setTranslation('description', $locale, $request['description'])
-                    ->save();
-            }
-
             DB::commit();
             return $faq;
 
@@ -82,8 +74,6 @@ class FaqRepository extends BaseRepository
 
             $faq = $this->model->findOrFail($id);
             $faq->update($request);
-
-            $this->setTranslation($faq, $request);
 
             DB::commit();
             return $faq;
@@ -132,13 +122,5 @@ class FaqRepository extends BaseRepository
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    function setTranslation($faq, $request)
-    {
-        $locale = app()->getLocale();
-        return $faq->setTranslation('title', $locale, $request['title'])
-            ->setTranslation('description', $locale, $request['description'])
-            ->save();
     }
 }

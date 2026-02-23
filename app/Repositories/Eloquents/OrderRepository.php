@@ -8,33 +8,33 @@ use App\Models\Order;
 use App\Payments\Cod;
 use App\Enums\RoleEnum;
 use App\Payments\bKash;
-use App\Enums\OrderEnum;
-use App\Helpers\Helpers;
 use App\Payments\Mollie;
 use App\Payments\PayPal;
 use App\Payments\Stripe;
+use App\Helpers\Helpers;
+use App\Enums\OrderEnum;
 use App\Payments\PhonePe;
-use App\Payments\CCAvenue;
 use App\Payments\Paystack;
+use App\Payments\CCAvenue;
 use App\Payments\RazorPay;
-use App\Models\OrderStatus;
 use App\Payments\InstaMojo;
 use Illuminate\Support\Arr;
+use App\Models\OrderStatus;
+use App\Payments\SSLCommerz;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
-use App\Payments\SSLCommerz;
 use App\Payments\FlutterWave;
 use App\Payments\BankTransfer;
 use App\Events\PlaceOrderEvent;
-use App\Events\CancelOrderEvent;
 use App\Models\OrderTransaction;
+use App\Events\CancelOrderEvent;
 use App\Enums\WalletPointsDetail;
 use App\Http\Traits\PaymentTrait;
-use App\Http\Traits\CheckoutTrait;
 use Illuminate\Support\Facades\DB;
-use App\Events\UpdateOrderStatusEvent;
+use App\Http\Traits\CheckoutTrait;
 use App\Http\Traits\TransactionsTrait;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
+use App\Events\UpdateOrderStatusEvent;
 use App\Events\PendingOrderReminderEvent;
 use App\GraphQL\Exceptions\ExceptionHandler;
 use Prettus\Repository\Eloquent\BaseRepository;
@@ -67,7 +67,7 @@ class OrderRepository extends BaseRepository
         }
     }
 
-    public function model()
+    function model()
     {
         $this->orderStatus = new OrderStatus();
         $this->settings = Helpers::getSettings();
@@ -113,7 +113,7 @@ class OrderRepository extends BaseRepository
                     return $this->verifyPayment($order);
                 }
 
-                throw new Exception(__('errors.unauthorised_action'), 403);
+                throw new Exception("This action is unauthorized", 403);
             }
 
         } catch (Exception $e) {
@@ -131,7 +131,7 @@ class OrderRepository extends BaseRepository
                 return $order;
             }
 
-            throw new Exception(__('errors.invalid_provided_details'), 400);
+            throw new Exception("Provided details are invalid", 400);
 
         } catch (Exception $e) {
 
@@ -163,77 +163,69 @@ class OrderRepository extends BaseRepository
     public function placeOrder($request)
     {
         DB::beginTransaction();
+        try {
 
-        $consumer_id = $this->createOrGetConsumerId($request);
-        $products = $this->getUniqueProducts($request->products);
-        $request->merge(['products' => $products]);
-        $items = $this->calculate($request);
+            $consumer_id = $this->createOrGetConsumerId($request);
+            $products = $this->getUniqueProducts($request->products);
+            $request->merge(['products' => $products]);
+            $items = $this->calculate($request);
 
-        if (!$consumer_id && !Helpers::isUserLogin()) {
-            if (!$this->isPhysicalOnly($request->products)) {
-                throw new Exception(__('errors.guest_checkout_physical_product_allowed'), 422);
-            }
-        }
-
-        if ($request->coupon) {
-            $coupon = Helpers::getCoupon($request->coupon);
-            $amount = Helpers::getTotalAmount($request->products);
-            if ($this->isValidCoupon($coupon, $amount, $consumer_id)) {
-                $request->merge(['coupon_id' => $coupon->id]);
-            }
-        }
-
-        $request->merge(['is_multiple_stores' => (count($items['items']) > 1)]);
-        $request->merge(['store_id' => head($items['items'])['store']]);
-
-        $order = $this->createOrder($items, $request);
-        if (Helpers::isMultiVendorEnable()) {
-            $this->createSubOrder($items, $request, $order);
-            $order->sub_orders;
-        }
-
-        DB::commit();
-        $order = $order->fresh();
-
-        if ($consumer_id) {
-            if ($request->points_amount) {
-                $balance = abs($items['total']['convert_point_amount']);
-                if ($this->verifyPoints($consumer_id, $balance)) {
-                    $balance = $this->currencyToPoints($balance);
-                    $this->debitPoints($consumer_id, $balance, WalletPointsDetail::POINTS_ORDER . ' #' . $order->order_number);
+            if (!$consumer_id && !Helpers::isUserLogin()) {
+                if (!$this->isPhysicalOnly($request->products)) {
+                    throw new Exception("Guest checkout allow for physical product", 422);
                 }
             }
 
-            if ($request->wallet_balance) {
-                $balance = abs($items['total']['convert_wallet_balance']);
-                if ($this->verifyWallet($consumer_id, $balance)) {
-                    $this->debitWallet($consumer_id, $balance, WalletPointsDetail::WALLET_ORDER . ' #' . $order->order_number);
+            if ($request->coupon) {
+                $coupon = Helpers::getCoupon($request->coupon);
+                $amount = Helpers::getTotalAmount($request->products);
+                if ($this->isValidCoupon($coupon, $amount, $consumer_id)) {
+                    $request->merge(['coupon_id' => $coupon->id]);
                 }
             }
 
-            if ($request->coupon_id) {
-                $this->updateCouponUsage($request->coupon_id);
+            $request->merge(['is_multiple_stores' => (count($items['items']) > 1)]);
+            $request->merge(['store_id' => head($items['items'])['store']]);
+
+            $order = $this->createOrder($items, $request);
+            if (Helpers::isMultiVendorEnable()) {
+                $this->createSubOrder($items, $request, $order);
+                $order->sub_orders;
             }
-        }
 
-        Helpers::removeCart($order);
-        return $this->createPayment($order, $request);
 
-        try {} catch (Exception $e) {
+            DB::commit();
+            $order = $order->fresh();
+
+            if ($consumer_id) {
+                if ($request->points_amount) {
+                    $balance = abs($items['total']['convert_point_amount']);
+                    if ($this->verifyPoints($consumer_id, $balance)) {
+                        $balance = $this->currencyToPoints($balance);
+                        $this->debitPoints($consumer_id, $balance, WalletPointsDetail::POINTS_ORDER . ' #' . $order->order_number);
+                    }
+                }
+
+                if ($request->wallet_balance) {
+                    $balance = abs($items['total']['convert_wallet_balance']);
+                    if ($this->verifyWallet($consumer_id, $balance)) {
+                        $this->debitWallet($consumer_id, $balance, WalletPointsDetail::WALLET_ORDER . ' #' . $order->order_number);
+                    }
+                }
+
+                if ($request->coupon_id) {
+                    $this->updateCouponUsage($request->coupon_id);
+                }
+            }
+
+            Helpers::removeCart($order);
+            return $this->createPayment($order, $request);
+
+        } catch (Exception $e) {
 
             DB::rollback();
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    public function updateCountryName($request, $addressType)
-    {
-        $address = $request->$addressType;
-        $country_id = $address['country_id'];
-        $state_id = $address['state_id'];
-        $address['country']['name'] = Helpers::getCountryNameById($country_id);
-        $address['state']['name'] = Helpers::getStateNameById($state_id);
-        $request->$addressType = $address;
     }
 
     public function createOrder($item, $request)
@@ -264,11 +256,6 @@ class OrderRepository extends BaseRepository
                 $request->billing_address = Helpers::getAddressById($request->billing_address_id);
             }
 
-            if ((int) is_null($consumer_id)) {
-                $this->updateCountryName($request, 'billing_address');
-                $this->updateCountryName($request, 'shipping_address');
-            }
-
             if ($request->is_multiple_stores && !$request->parent_id) {
                 $request->merge(['store_id' => $request->parent_id]);
             }
@@ -283,7 +270,7 @@ class OrderRepository extends BaseRepository
                 'order_status_id' => $order_status,
                 'payment_status' => $payment_status,
                 'shipping_address' => $request->shipping_address,
-                'billing_address' => $request->billing_address,
+                'billing_address' =>  $request->billing_address,
                 'delivery_description' => $request->delivery_description,
                 'delivery_interval' => $request->delivery_interval,
                 'parent_id' => $request->parent_id,
@@ -294,9 +281,9 @@ class OrderRepository extends BaseRepository
                 'invoice_url' => $this->generateInvoiceUrl($order_number),
                 'coupon_total_discount' => $item['total']['coupon_total_discount'],
                 'is_guest' => (int) is_null($consumer_id),
-                'is_digital_only' => $item['total']['is_digital_only'],
+                'is_digital_only' =>  $item['total']['is_digital_only'],
                 'amount' => $item['total']['sub_total'],
-                'total' => $item['total']['total'],
+                'total' => $item['total']['total']
             ]);
 
             if (!isset($item['products'])) {
@@ -354,7 +341,7 @@ class OrderRepository extends BaseRepository
                             'product_id' => $item['product_id'] ?? null,
                             'variation_id' => $item['variation_id'] ?? null,
                             'consumer_id' => $consumer_id,
-                            'license_key_id' => $license_key_id ?? null,
+                            'license_key_id' => $license_key_id ?? null
                         ]);
                     }
                 }
@@ -426,7 +413,7 @@ class OrderRepository extends BaseRepository
 
             $order->update($request);
             if (isset($request['order_status_id'])) {
-                $changed_at = isset($request['changed_at']) ? $request['changed_at'] : Carbon::now()->toDateTimeString();
+                $changed_at = isset($request['changed_at']) ? $request['changed_at']: Carbon::now()->toDateTimeString();
                 $this->updateOrderStatusActivities($order, $order_status, $changed_at);
             }
 
@@ -443,6 +430,7 @@ class OrderRepository extends BaseRepository
                 if ($order->order_status->name == OrderEnum::DELIVERED) {
                     $order->delivered_at = Carbon::now()->toDateString();
                     $order->save();
+
                     if ($order->parent_id) {
                         $this->updateParentOrderStatus($order);
                     }
@@ -468,7 +456,7 @@ class OrderRepository extends BaseRepository
         $parentOrder = $this->model->findOrFail($order->parent_id);
         if (count($parentOrder->sub_orders)) {
             $isAllPaymentCompleted = $parentOrder?->sub_orders?->every(function ($subOrder) {
-                return $subOrder->payment_status === PaymentStatus::COMPLETED;
+                return $subOrder->payment_status ===  PaymentStatus::COMPLETED;
             });
             if ($isAllPaymentCompleted) {
                 $parentOrder->payment_status = PaymentStatus::COMPLETED;
@@ -491,9 +479,9 @@ class OrderRepository extends BaseRepository
         if ($order?->is_digital_only) {
             $excludeSequences = $this->orderStatus->getExcludedSequenceForDigital();
             $order_sequences = collect(range(1, $sequence))
-                ->reject(fn($item) =>($sequence > $cancelSequence && in_array($item, $excludeSequences)))->values()->all();
+                ->reject(fn($item) =>($sequence > $cancelSequence && in_array($item, $excludeSequences)))?->values()?->all();
         } else {
-            $order_sequences = collect(range(1, $sequence))->reject(fn($item) => ($sequence > $cancelSequence && $item === $cancelSequence))->values()->all();
+            $order_sequences = collect(range(1, $sequence))?->reject(fn($item) => ($sequence > $cancelSequence && $item === $cancelSequence))?->values()?->all();
         }
 
         if ($order_sequences && is_array($order_sequences)) {
@@ -597,7 +585,7 @@ class OrderRepository extends BaseRepository
 
             $order = $this->model->with(config('enums.order.with'))->where('order_number', $order_number)->first();
             if (!$order) {
-                throw new Exception(__('errors.invalid_order_number'), 400);
+                throw new Exception('The provided order number is not valid.', 400);
             }
 
             $order->products;
@@ -615,7 +603,7 @@ class OrderRepository extends BaseRepository
 
             $order = $this->verifyOrderNumber($request->order_number);
             if ($order->payment_status == PaymentStatus::COMPLETED) {
-                throw new Exception(__('errors.payment_already_processed'), 400);
+                throw new Exception('This payment has already been successfully processed previously.', 400);
             }
 
             return $this->createPayment($order, $request);
@@ -650,7 +638,7 @@ class OrderRepository extends BaseRepository
             $order = $this->verifyOrderNumber($request->order_number);
             $roleName = Helpers::getCurrentRoleName();
             if ($order->consumer_id != Helpers::getCurrentUserId() && $roleName == RoleEnum::CONSUMER) {
-                throw new Exception(__('errors.not_purchased_order'), 400);
+                throw new Exception("This order hasn't been purchased by you.", 400);
             }
 
             $invoice = [
@@ -670,8 +658,7 @@ class OrderRepository extends BaseRepository
     {
         try {
 
-            $orders = $this->model->whereNull('deleted_at')
-                ->where('order_status_id', Helpers::getOrderStatusIdByName(OrderEnum::PENDING))
+            $orders = $this->model->whereNull('deleted_at')->where('order_status_id', Helpers::getOrderStatusIdByName(OrderEnum::PENDING))
                 ->where('updated_at', '<=', Carbon::now()->subHours(24));
 
             if ($orders) {
@@ -695,7 +682,7 @@ class OrderRepository extends BaseRepository
             if (!$order?->is_guest) {
                 if ($roleName == RoleEnum::CONSUMER) {
                     if ($order->consumer_id != Helpers::getCurrentUserId()) {
-                        throw new Exception(__('errors.unauthorized_order_cancel'), 400);
+                        throw new Exception("This order does not belong to you and cannot be cancelled.", 400);
                     }
                 }
 
@@ -766,7 +753,7 @@ class OrderRepository extends BaseRepository
                     return Cod::status($order, $request);
 
                 default:
-                    throw new Exception(__('errors.invalid_payment_method_transaction'), 400);
+                    throw new Exception('The selected payment method is not valid for this transaction.', 400);
             }
 
             return $order;

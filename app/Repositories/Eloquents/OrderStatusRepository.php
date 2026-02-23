@@ -72,7 +72,7 @@ class OrderStatusRepository extends BaseRepository
 
             $orderStatus = $this->model->findOrFail($id);
             if ($orderStatus->system_reserve) {
-                throw new Exception(__('errors.reserved_order_not_changed'),403);
+                throw new Exception('The selected order status is system reserved and cannot be changed.',403);
             }
 
             $orderStatus->update($request);
@@ -93,7 +93,7 @@ class OrderStatusRepository extends BaseRepository
 
             $orderStatus = $this->model->findOrFail($id);
             if ($orderStatus->system_reserve) {
-                throw new Exception(__('errors.reserved_order_not_delete'),403);
+                throw new Exception('The selected order status is system reserved and cannot be deleted.',403);
             }
 
             return $orderStatus->destroy($id);

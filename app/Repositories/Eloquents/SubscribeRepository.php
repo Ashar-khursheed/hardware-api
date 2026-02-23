@@ -111,7 +111,7 @@ class SubscribeRepository extends BaseRepository
     {
         try {
 
-            return route('admin.subscribes.export');
+            return route('subscribes.export');
 
         } catch (Exception $e) {
 

@@ -4,7 +4,6 @@ namespace App\Repositories\Eloquents;
 
 use Exception;
 use App\Models\Blog;
-use App\Helpers\Helpers;
 use Illuminate\Support\Facades\DB;
 use App\GraphQL\Exceptions\ExceptionHandler;
 use Prettus\Repository\Eloquent\BaseRepository;
@@ -45,7 +44,7 @@ class BlogRepository extends BaseRepository
             isset($blog->created_by)?
                 $blog->created_by->makeHidden(['permission']): $blog;
 
-            return $blog?->toJson();
+            return $blog;
 
         } catch (Exception $e){
 
@@ -69,7 +68,6 @@ class BlogRepository extends BaseRepository
                 'is_featured' => $request->is_featured,
                 'is_sticky' => $request->is_sticky,
                 'status' => $request->status,
-                'slug' => $request->slug
             ]);
 
             $blog->blog_thumbnail;
@@ -86,16 +84,6 @@ class BlogRepository extends BaseRepository
 
             isset($blog->created_by)?
                 $blog->created_by->makeHidden(['permission']): $blog;
-
-            $locales =  Helpers::getAllActiveLocales();
-            foreach ($locales as $locale) {
-                $blog->setTranslation('title', $locale, $request['title'])
-                    ->setTranslation('description', $locale, $request['description'])
-                    ->setTranslation('content', $locale, $request['content'])
-                    ->setTranslation('meta_title', $locale, $request['meta_title'])
-                    ->setTranslation('meta_description', $locale, $request['meta_description'])
-                    ->save();
-            }
 
             DB::commit();
             return $blog;
@@ -132,8 +120,6 @@ class BlogRepository extends BaseRepository
 
             isset($blog->created_by)?
                 $blog->created_by->makeHidden(['permission']): $blog;
-
-            $this->setTranslation($blog, $request);
 
             DB::commit();
             $blog = $blog->fresh();
@@ -196,22 +182,11 @@ class BlogRepository extends BaseRepository
             isset($blog->created_by)?
                 $blog->created_by->makeHidden(['permission']): $blog;
 
-            return $blog?->toJson();
+            return $blog;
 
         } catch (Exception $e) {
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    function setTranslation($blog, $request)
-    {
-        $locale = app()->getLocale();
-        return $blog->setTranslation('title', $locale, $request['title'])
-            ->setTranslation('description', $locale, $request['description'])
-            ->setTranslation('content', $locale, $request['content'])
-            ->setTranslation('meta_title', $locale, $request['meta_title'])
-            ->setTranslation('meta_description', $locale, $request['meta_description'])
-            ->save();
     }
 }

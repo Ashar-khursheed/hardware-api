@@ -2,10 +2,9 @@
 
 namespace App\Notifications;
 
-use App\Models\Order;
 use App\Helpers\Helpers;
+use App\Models\Order;
 use Illuminate\Bus\Queueable;
-use App\SMS\UpdateOrderStatusSMS;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -25,39 +24,31 @@ class UpdateOrderStatusNotification extends Notification
         $this->consumer = $consumer;
     }
 
-   /**
+    /**
      * Get the notification's delivery channels.
      *
      * @return array<int, string>
      */
     public function via(object $notifiable): array
     {
-        return [UpdateOrderStatusSMS::class,'database','mail'];
-    }
-
-    public function toSend(object $notifiable)
-    {
-        return (new UpdateOrderStatusSMS)->sendSMS($notifiable, $this->order);
+        return ['mail','database'];
     }
 
     /**
      * Get the mail representation of the notification.
      */
-    public function toMail(object $notifiable)
+    public function toMail(object $notifiable): MailMessage
     {
-        $settings = Helpers::getSettings();
-        if($settings['email']['order_status_update_mail']) {
-            if ($this->order->consumer_id) {
-                $consumer = Helpers::getConsumerById($this->order?->consumer_id);
-                if ($consumer) {
-                    return (new MailMessage)
-                        ->subject("Order ID: #{$this->order?->order_number} has been {$this->order?->order_status?->name}")
-                        ->greeting("Hello {$consumer->name},")
-                        ->line("We wanted to provide you with an update regarding your recent order, ID. #{$this->order?->order_number}.")
-                        ->line("Your order status has been updated to {$this->order?->order_status?->name}. ")
-                        ->line('Please feel free to reach out to us if you have any questions or need assistance.')
-                        ->line('Thank you for choosing us for your shopping experience. We value your trust and support!');
-                }
+        if ($this->order->consumer_id) {
+            $consumer = Helpers::getConsumerById($this->order?->consumer_id);
+            if ($consumer) {
+                return (new MailMessage)
+                    ->subject("Order ID: #{$this->order?->order_number} has been {$this->order?->order_status?->name}")
+                    ->greeting("Hello {$consumer->name},")
+                    ->line("We wanted to provide you with an update regarding your recent order, ID. #{$this->order?->order_number}.")
+                    ->line("Your order status has been updated to {$this->order?->order_status?->name}. ")
+                    ->line('Please feel free to reach out to us if you have any questions or need assistance.')
+                    ->line('Thank you for choosing us for your shopping experience. We value your trust and support!');
             }
         }
     }
@@ -71,10 +62,9 @@ class UpdateOrderStatusNotification extends Notification
     {
         // for consumer
         return [
-            'title' => __('notifications.update_order_status_title'),
-            'message' => __('notifications.update_order_status_consumer',['orderNumber' => $this->order->order_number, 'OrdersName' => $this->order->order_status->name]),
-            'type' => "order",
-            'order_number' => $this->order?->order_number
+            'title' => "Order status updated!",
+            'message' => "Order Update: Your order #{$this->order->order_number} has been updated and current order status is in {$this->order->order_status->name}. Thank you for your patience!",
+            'type' => "order"
         ];
     }
 }

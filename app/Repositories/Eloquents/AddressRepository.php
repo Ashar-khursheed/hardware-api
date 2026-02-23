@@ -40,7 +40,7 @@ class AddressRepository extends BaseRepository
     {
         try {
 
-            return $this->model->findOrFail($id)?->toJson();
+            return $this->model->findOrFail($id);
 
         } catch (Exception $e){
 
@@ -68,11 +68,6 @@ class AddressRepository extends BaseRepository
             $address->country;
             $address->state;
 
-            $locales =  Helpers::getAllActiveLocales();
-            foreach ($locales as $locale) {
-                $address->setTranslation('title', $locale, $request['title'])->save();
-            }
-
             DB::commit();
             return $address;
 
@@ -97,8 +92,6 @@ class AddressRepository extends BaseRepository
             $address = $this->model->findOrFail($id);
             $address->update($request);
 
-            $this->setTranslation($address, $request);
-
             DB::commit();
             return $address;
 
@@ -120,10 +113,10 @@ class AddressRepository extends BaseRepository
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
     }
-
-    public function setTranslation($address, $request)
-    {
-        $locale = app()->getLocale();
-        return $address->setTranslation('title', $locale, $request['title'])->save();
-    }
 }
+
+
+
+
+
+

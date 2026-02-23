@@ -58,12 +58,12 @@ class CompareRepository extends BaseRepository
             if (!$comparedProducts->isEmpty()) {
                 $comparedCategory = $comparedProducts->Where('category_id', $category_id);
                 if ($comparedCategory->isEmpty()) {
-                    throw new Exception(__('errors.similar_products_only'), 400);
+                    throw new Exception('You can only compare similar products.', 400);
                 }
 
                 foreach($comparedProducts as $comparedProduct) {
                     if ($comparedProduct->product_id == $request->product_id) {
-                        throw new Exception(__('errors.product_in_compare_list'), 400);
+                        throw new Exception('The selected product is already present in your compare list.', 400);
                     }
                 }
             }

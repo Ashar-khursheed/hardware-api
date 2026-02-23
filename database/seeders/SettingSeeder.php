@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Setting;
 use App\Helpers\Helpers;
 use App\Models\Currency;
-use App\Models\language;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -29,7 +28,6 @@ class SettingSeeder extends Seeder
     public function run()
     {
         $currency_id = Currency::where('status', true)->first()->id;
-        $locale_id = language::where('status', true)->first()?->id;
         $values = [
             'general' => [
                 'light_logo_image_id' => Helpers::getAttachmentId('logo-white.png'),
@@ -42,7 +40,6 @@ class SettingSeeder extends Seeder
                 'site_url' => '',
                 'default_timezone' => 'Asia/Kolkata',
                 'default_currency_id' => $currency_id,
-                'default_language_id' => $locale_id,
                 'admin_site_language_direction' => 'ltr',
                 'min_order_amount' => 0,
                 'min_order_free_shipping' => 50,
@@ -60,9 +57,7 @@ class SettingSeeder extends Seeder
                 'product_auto_approve' => true,
                 'guest_checkout' => true,
                 'track_order' => true,
-                "login_number" => true,
-                'send_sms' => true,
-                'zone_enable' => true
+                "login_number" => true
             ],
             'wallet_points' => [
                 'signup_points' => 100,

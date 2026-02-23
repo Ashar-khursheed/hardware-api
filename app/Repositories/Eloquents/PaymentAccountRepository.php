@@ -79,7 +79,7 @@ class PaymentAccountRepository extends BaseRepository
     {
         $paymentAccount = $this->model->where([['user_id', Helpers::getCurrentUserId()],['id', $id]])->first();
         if (!$paymentAccount) {
-            throw new Exception (__('errors.payment_account_not_found'), 400);
+            throw new Exception ('Payment Account not exists for current user', 400);
         }
 
         return $paymentAccount;

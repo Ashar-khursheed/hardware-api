@@ -4,9 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Order;
 use App\Enums\RoleEnum;
-use App\Helpers\Helpers;
 use Illuminate\Bus\Queueable;
-use App\SMS\PendingOrderReminderSMS;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -33,48 +31,25 @@ class PendingOrderReminderNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database', PendingOrderReminderSMS::class];
-    }
-
-    public function toSend(object $notifiable)
-    {
-        switch ($this->roleName) {
-            case RoleEnum::VENDOR:
-                return self::toVendorSMS($notifiable);
-            case RoleEnum::ADMIN:
-                return self::toAdminSMS($notifiable);
-        }
-    }
-
-    public function toAdminSMS($notifiable)
-    {
-        return (new PendingOrderReminderSMS)->sendSMS($notifiable,  $this->roleName, $this->order);
-    }
-
-    public function toVendorSMS($notifiable)
-    {
-        return (new PendingOrderReminderSMS)->sendSMS($notifiable,  $this->roleName, $this->order);
+        return ['database'];
     }
 
     /**
      * Get the mail representation of the notification.
      */
-    public function toMail(object $notifiable)
+    public function toMail(object $notifiable): MailMessage
     {
-        $settings = Helpers::getSettings();
-        if($settings['email']['pending_order_alert_mail']) {
-            switch ($this->roleName) {
-                case RoleEnum::VENDOR:
-                    return $this->toVendorMail();
-                case RoleEnum::ADMIN:
-                    return $this->toAdminMail();
-            }
+        switch($this->roleName) {
+            case RoleEnum::VENDOR:
+                return $this->toVendorMail();
+            case RoleEnum::ADMIN:
+                return $this->toAdminMail();
         }
     }
 
     public function toAdminMail(): MailMessage
     {
-        return (new MailMessage)
+        return  (new MailMessage)
             ->subject("Attention Needed: Order #{$this->order->order_number}")
             ->line('An order has been pending for more than 24 hours and requires your attention.')
             ->line('Order Payment Status: ' . $this->order->payment_status)
@@ -101,20 +76,19 @@ class PendingOrderReminderNotification extends Notification
     {
         switch ($this->roleName) {
             case RoleEnum::VENDOR:
-                $message = __('notifications.pending_order_reminder_vendor',['orderNumber' => $this->order->order_number]);
-                $title = __('notifications.pending_order_reminder_vendor_title');
+                $message = "Order #{$this->order->order_number} has been pending for over 24 hours. Please update the order status promptly.";
+                $title = "Urgent: Order Update Required";
                 break;
             case RoleEnum::ADMIN:
-                $message = __('notifications.pending_order_reminder_admin',['orderNumber' => $this->order->order_number]);
-                $title = __('notifications.pending_order_reminder_admin_title');
+                $message = "Order #{$this->order->order_number} has been pending for more than 24 hours. Please review and take necessary action.";
+                $title = "Action Needed: Pending Order";
                 break;
         }
 
         return [
             'title' => $title,
             'message' => $message,
-            'type' => "order",
-            'order_number' => $this->order?->order_number
+            'type' => "order"
         ];
     }
 }

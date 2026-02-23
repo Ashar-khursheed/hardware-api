@@ -172,9 +172,9 @@ class DashboardRepository extends BaseRepository
         if ($roleName == RoleEnum::VENDOR) {
             $childOrders = Order::whereNUll('deleted_at')->whereNotNull('parent_id')->where('store_id', Helpers::getCurrentVendorStoreId());
             $parentOrderIds = Order::whereNUll('deleted_at')->whereNull('parent_id')->where('store_id', Helpers::getCurrentVendorStoreId())->whereNotIn('id', $childOrders->pluck('parent_id')->toArray())->pluck('id')->toArray();
-            $childOrderIds = $childOrders->pluck('id')->toArray();
+            $parentOrderIds = $childOrders->pluck('id')->toArray();
 
-            $orderIds = array_merge($parentOrderIds, $childOrderIds);
+            $orderIds = array_merge($parentOrderIds, $parentOrderIds);
             $orders = Order::whereIn('id', $orderIds);
         }
 

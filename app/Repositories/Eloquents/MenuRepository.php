@@ -4,7 +4,6 @@ namespace App\Repositories\Eloquents;
 
 use Exception;
 use App\Models\Menu;
-use App\Helpers\Helpers;
 use Illuminate\Support\Facades\DB;
 use App\GraphQL\Exceptions\ExceptionHandler;
 use Prettus\Repository\Eloquent\BaseRepository;
@@ -38,7 +37,7 @@ class MenuRepository extends BaseRepository
     {
         try {
 
-            return $this->model->with('child')->findOrFail($id)?->toJson();
+            return $this->model->with('child')->findOrFail($id);
 
         } catch (Exception $e){
 
@@ -53,8 +52,13 @@ class MenuRepository extends BaseRepository
 
             $menu = $this->model->create([
                 'title' => $request->title,
-                'path' => $request->path,
                 'link_type' => $request->link_type,
+                'path' => $request->path,
+                'sort' => $request->sort,
+                'slug' => $request->slug,
+                'path' => $request->path,
+                'type' => $request->type,
+                'set_page_link' => $request->set_page_link,
                 'mega_menu' => $request->mega_menu,
                 'mega_menu_type' => $request->mega_menu_type,
                 'badge_text' => $request->badge_text,
@@ -74,11 +78,6 @@ class MenuRepository extends BaseRepository
 
             if (isset($request->blog_ids)){
                 $menu->blogs()->attach($request->blog_ids);
-            }
-
-            $locales =  Helpers::getAllActiveLocales();
-            foreach ($locales as $locale) {
-                $menu->setTranslation('title', $locale, $request['title'])->save();
             }
 
             DB::commit();
@@ -107,14 +106,27 @@ class MenuRepository extends BaseRepository
                 $menu->blogs()->sync($request['blog_ids']);
             }
 
-            $this->setTranslation($menu, $request);
-
             DB::commit();
             return $menu;
 
         } catch (Exception $e) {
 
             DB::rollback();
+            throw new ExceptionHandler($e->getMessage(), $e->getCode());
+        }
+    }
+
+    public function status($id, $status)
+    {
+        try {
+
+            $menu = $this->model->findOrFail($id);
+            $menu->update(['status' => $status]);
+
+            return $menu;
+
+        } catch (Exception $e) {
+
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
     }
@@ -128,8 +140,8 @@ class MenuRepository extends BaseRepository
             ]);
         }
 
-        if (count($menu['child'])) {
-            foreach ($menu['child'] as $child) {
+        if (count($item['child'])) {
+            foreach ($item['child'] as $child) {
                 $this->updateMenuPosition($child);
             }
         }
@@ -168,11 +180,5 @@ class MenuRepository extends BaseRepository
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    function setTranslation($menu, $request)
-    {
-        $locale = app()->getLocale();
-        return $menu->setTranslation('title', $locale, $request['title'])->save();
     }
 }

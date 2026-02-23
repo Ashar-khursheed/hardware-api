@@ -122,7 +122,7 @@ class UserRepository extends BaseRepository
 
             $user = $this->model->findOrFail($id);
             if ($user->system_reserve) {
-                throw new Exception(__('errors.reserved_user_not_changed'),400);
+                throw new Exception('This user is system reserved and not editable.',400);
             }
 
             $user->update($request);
@@ -151,7 +151,7 @@ class UserRepository extends BaseRepository
 
             $user = $this->model->findOrFail($id);
             if ($user->hasRole(RoleEnum::ADMIN)) {
-                throw new Exception(__('errors.reserved_user_not_delete'), 400);
+                throw new Exception('This user is system reserved and cannot be deleted.', 400);
             }
 
             return $user->destroy($id);
@@ -223,7 +223,7 @@ class UserRepository extends BaseRepository
     {
         try {
 
-            return route('admin.users.export');
+            return route('users.export');
 
         } catch (Exception $e) {
 

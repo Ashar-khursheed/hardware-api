@@ -77,7 +77,7 @@ class CurrencyRepository extends BaseRepository
 
             $currency = $this->model->findOrFail($id);
             if ($currency->system_reserve) {
-                throw new Exception(__('errors.reserved_currency_not_changed'), 400);
+                throw new Exception('The selected currency is system reserved and cannot be changed.', 400);
             }
 
             $currency->update($request);
@@ -104,12 +104,12 @@ class CurrencyRepository extends BaseRepository
 
             $totalItems = $this->getTotalItems();
             if ($totalItems <= 1) {
-                throw new Exception(__('errors.last_currency_not_delete'), 403);
+                throw new Exception('Cannot delete the last currency.', 403);
             }
 
             $currency = $this->model->findOrFail($id);
             if ($currency->system_reserve) {
-                throw new Exception(__('errors.reserved_currency_not_delete'), 403);
+                throw new Exception('This Currency Cannot be delete. It is System reserved.', 403);
             }
 
             return $currency->destroy($id);
@@ -142,7 +142,7 @@ class CurrencyRepository extends BaseRepository
             $totalItems = $this->getTotalItems();
             $idsCount = count($ids);
             if ($idsCount >= $totalItems) {
-                throw new Exception(__('errors.not_delete_all_currencies'), 403);
+                throw new Exception('Cannot delete the all currencies.', 403);
             }
 
             return $this->model->whereNot('system_reserve', true)->whereIn('id', $ids)->delete();

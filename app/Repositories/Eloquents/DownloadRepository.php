@@ -82,7 +82,7 @@ class DownloadRepository extends BaseRepository
             if (Helpers::isDigitalProduct($request->product_id)) {
                 $roleName = Helpers::getCurrentRoleName();
                 if ($roleName == RoleEnum::CONSUMER) {
-                    throw new Exception(__('errors.unauthorized_consumer'), 400);
+                    throw new Exception('unauthorized for consumer.', 400);
                 }
 
                 $payload = ['product_id' => $request->product_id, 'variation_id' => $request->variation_id];
@@ -91,7 +91,7 @@ class DownloadRepository extends BaseRepository
                 return ['download_link' => $url];
             }
 
-            throw new Exception(__('errors.product_not_digital'), 400);
+            throw new Exception('product is not digital.', 400);
 
         } catch (Exception $e) {
 
@@ -118,7 +118,7 @@ class DownloadRepository extends BaseRepository
                     return ['download_link' => $url];
                 }
 
-                throw new Exception(__('errors.product_not_licensable'), 422);
+                throw new Exception('This Product is not licensable', 422);
             }
         } catch (Exception $e) {
 
@@ -197,7 +197,7 @@ class DownloadRepository extends BaseRepository
             }
 
             if ($files->isEmpty()) {
-                throw new Exception(__('errors.files_not_exists'), 404);
+                throw new Exception('files not exists.', 404);
             }
 
             return MediaStream::create("{$this->generateFileName($request)}.zip")->addMedia($files);
@@ -231,7 +231,7 @@ class DownloadRepository extends BaseRepository
                 }
             }
 
-            throw new Exception(__('errors.expired_token_generate_link'), 403);
+            throw new Exception('The token has expired; please generate a new download link.', 403);
 
         } catch (Exception $e) {
 
@@ -269,7 +269,7 @@ class DownloadRepository extends BaseRepository
                     $product = $this->getLicensableProduct($downloadFile->product_id);
                     if ($product) {
                         if (!$downloadFile->license_key_id) {
-                            throw new Exception(__('errors.license_key_unavailable'), 400);
+                            throw new Exception('License Key not available for this product.', 400);
                         } else {
                             $licenseKey = $this->getLicenseKeyById($downloadFile->license_key_id);
                         }
@@ -281,13 +281,13 @@ class DownloadRepository extends BaseRepository
                         return $this->createTextMessageFile($licenseKey->license_key);
                     }
 
-                    throw new Exception(__('errors.product_not_licensable'), 400);
+                    throw new Exception('This product is not licensable.', 400);
                 }
 
-                throw new Exception(__('errors.expired_token_generate_link'), 403);
+                throw new Exception('The token has expired; please generate a new download link.', 403);
             }
 
-            throw new Exception(__('errors.invalid_download_token'), 422);
+            throw new Exception('The token id for downloading key is not valid.', 422);
         } catch (Exception $e) {
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
@@ -305,13 +305,13 @@ class DownloadRepository extends BaseRepository
                         return true;
                     }
 
-                    throw new Exception(__('errors.invalid_download_file_id'), 400);
+                    throw new Exception('The download file ID is not valid for the current user.', 400);
                 }
             }
 
             return true;
         }
 
-        throw new Exception(__('errors.invalid_file_id'), 422);
+        throw new Exception('Provided download file id is invalid', 422);
     }
 }

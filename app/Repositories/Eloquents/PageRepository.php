@@ -4,7 +4,6 @@ namespace App\Repositories\Eloquents;
 
 use Exception;
 use App\Models\Page;
-use App\Helpers\Helpers;
 use Illuminate\Support\Facades\DB;
 use App\GraphQL\Exceptions\ExceptionHandler;
 use Prettus\Repository\Eloquent\BaseRepository;
@@ -63,17 +62,7 @@ class PageRepository extends BaseRepository
                 'meta_description' => $request->meta_description,
                 'page_meta_image_id' => $request->page_meta_image_id,
                 'status' => $request->status,
-                'slug' => $request->slug
             ]);
-
-            $locales =  Helpers::getAllActiveLocales();
-            foreach ($locales as $locale) {
-                $page->setTranslation('title', $locale, $request['title'])
-                    ->setTranslation('content', $locale, $request['content'])
-                    ->setTranslation('meta_title', $locale, $request['meta_title'])
-                    ->setTranslation('meta_description', $locale, $request['meta_description'])
-                    ->save();
-            }
 
             $page->page_meta_image;
             isset($page->created_by)?
@@ -99,8 +88,6 @@ class PageRepository extends BaseRepository
 
             isset($page->created_by)?
                 $page->created_by->makeHidden(['permission']): $page;
-
-            self::setTranslation($page, $request);
 
             DB::commit();
             $page = $page->fresh();
@@ -153,7 +140,7 @@ class PageRepository extends BaseRepository
         }
     }
 
-    public function getPageBySlug($slug)
+    public function getPagesBySlug($slug)
     {
         try {
 
@@ -170,15 +157,5 @@ class PageRepository extends BaseRepository
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    function setTranslation($page, $request)
-    {
-        $locale = app()->getLocale();
-        return $page->setTranslation('title', $locale, $request['title'])
-            ->setTranslation('content', $locale, $request['content'])
-            ->setTranslation('meta_title', $locale, $request['meta_title'])
-            ->setTranslation('meta_description', $locale, $request['meta_description'])
-            ->save();
     }
 }

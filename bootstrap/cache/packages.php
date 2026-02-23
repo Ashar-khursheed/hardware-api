@@ -1,43 +1,25 @@
 <?php return array (
   'barryvdh/laravel-dompdf' => 
   array (
-    'aliases' => 
-    array (
-      'PDF' => 'Barryvdh\\DomPDF\\Facade\\Pdf',
-      'Pdf' => 'Barryvdh\\DomPDF\\Facade\\Pdf',
-    ),
     'providers' => 
     array (
       0 => 'Barryvdh\\DomPDF\\ServiceProvider',
     ),
-  ),
-  'brotzka/laravel-dotenv-editor' => 
-  array (
     'aliases' => 
     array (
-      'DotenvEditor' => 'Brotzka\\DotenvEditor\\DotenvEditorFacade',
-    ),
-    'providers' => 
-    array (
-      0 => 'Brotzka\\DotenvEditor\\DotenvEditorServiceProvider',
+      'Pdf' => 'Barryvdh\\DomPDF\\Facade\\Pdf',
+      'PDF' => 'Barryvdh\\DomPDF\\Facade\\Pdf',
     ),
   ),
   'cartalyst/stripe-laravel' => 
   array (
-    'aliases' => 
-    array (
-      'Stripe' => 'Cartalyst\\Stripe\\Laravel\\Facades\\Stripe',
-    ),
     'providers' => 
     array (
       0 => 'Cartalyst\\Stripe\\Laravel\\StripeServiceProvider',
     ),
-  ),
-  'codezero/laravel-unique-translation' => 
-  array (
-    'providers' => 
+    'aliases' => 
     array (
-      0 => 'CodeZero\\UniqueTranslation\\UniqueTranslationServiceProvider',
+      'Stripe' => 'Cartalyst\\Stripe\\Laravel\\Facades\\Stripe',
     ),
   ),
   'cviebrock/eloquent-sluggable' => 
@@ -49,13 +31,24 @@
   ),
   'intervention/image' => 
   array (
+    'providers' => 
+    array (
+      0 => 'Intervention\\Image\\ImageServiceProvider',
+    ),
     'aliases' => 
     array (
       'Image' => 'Intervention\\Image\\Facades\\Image',
     ),
+  ),
+  'jackiedo/dotenv-editor' => 
+  array (
     'providers' => 
     array (
-      0 => 'Intervention\\Image\\ImageServiceProvider',
+      0 => 'Jackiedo\\DotenvEditor\\DotenvEditorServiceProvider',
+    ),
+    'aliases' => 
+    array (
+      'DotenvEditor' => 'Jackiedo\\DotenvEditor\\Facades\\DotenvEditor',
     ),
   ),
   'laravel/sail' => 
@@ -88,20 +81,13 @@
   ),
   'maatwebsite/excel' => 
   array (
-    'aliases' => 
-    array (
-      'Excel' => 'Maatwebsite\\Excel\\Facades\\Excel',
-    ),
     'providers' => 
     array (
       0 => 'Maatwebsite\\Excel\\ExcelServiceProvider',
     ),
-  ),
-  'matanyadaev/laravel-eloquent-spatial' => 
-  array (
-    'providers' => 
+    'aliases' => 
     array (
-      0 => 'MatanYadaev\\EloquentSpatial\\EloquentSpatialServiceProvider',
+      'Excel' => 'Maatwebsite\\Excel\\Facades\\Excel',
     ),
   ),
   'mll-lab/laravel-graphiql' => 
@@ -113,13 +99,13 @@
   ),
   'mollie/laravel-mollie' => 
   array (
-    'aliases' => 
-    array (
-      'Mollie' => 'Mollie\\Laravel\\Facades\\Mollie',
-    ),
     'providers' => 
     array (
       0 => 'Mollie\\Laravel\\MollieServiceProvider',
+    ),
+    'aliases' => 
+    array (
+      'Mollie' => 'Mollie\\Laravel\\Facades\\Mollie',
     ),
   ),
   'nesbot/carbon' => 
@@ -150,14 +136,13 @@
       0 => 'Nuwave\\Lighthouse\\LighthouseServiceProvider',
       1 => 'Nuwave\\Lighthouse\\Async\\AsyncServiceProvider',
       2 => 'Nuwave\\Lighthouse\\Auth\\AuthServiceProvider',
-      3 => 'Nuwave\\Lighthouse\\Bind\\BindServiceProvider',
-      4 => 'Nuwave\\Lighthouse\\Cache\\CacheServiceProvider',
-      5 => 'Nuwave\\Lighthouse\\GlobalId\\GlobalIdServiceProvider',
-      6 => 'Nuwave\\Lighthouse\\OrderBy\\OrderByServiceProvider',
-      7 => 'Nuwave\\Lighthouse\\Pagination\\PaginationServiceProvider',
-      8 => 'Nuwave\\Lighthouse\\SoftDeletes\\SoftDeletesServiceProvider',
-      9 => 'Nuwave\\Lighthouse\\Testing\\TestingServiceProvider',
-      10 => 'Nuwave\\Lighthouse\\Validation\\ValidationServiceProvider',
+      3 => 'Nuwave\\Lighthouse\\Cache\\CacheServiceProvider',
+      4 => 'Nuwave\\Lighthouse\\GlobalId\\GlobalIdServiceProvider',
+      5 => 'Nuwave\\Lighthouse\\OrderBy\\OrderByServiceProvider',
+      6 => 'Nuwave\\Lighthouse\\Pagination\\PaginationServiceProvider',
+      7 => 'Nuwave\\Lighthouse\\SoftDeletes\\SoftDeletesServiceProvider',
+      8 => 'Nuwave\\Lighthouse\\Testing\\TestingServiceProvider',
+      9 => 'Nuwave\\Lighthouse\\Validation\\ValidationServiceProvider',
     ),
   ),
   'prettus/l5-repository' => 
@@ -169,13 +154,13 @@
   ),
   'spatie/laravel-ignition' => 
   array (
-    'aliases' => 
-    array (
-      'Flare' => 'Spatie\\LaravelIgnition\\Facades\\Flare',
-    ),
     'providers' => 
     array (
       0 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
+    ),
+    'aliases' => 
+    array (
+      'Flare' => 'Spatie\\LaravelIgnition\\Facades\\Flare',
     ),
   ),
   'spatie/laravel-medialibrary' => 
@@ -192,22 +177,15 @@
       0 => 'Spatie\\Permission\\PermissionServiceProvider',
     ),
   ),
-  'spatie/laravel-translatable' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'Spatie\\Translatable\\TranslatableServiceProvider',
-    ),
-  ),
   'srmklive/paypal' => 
   array (
-    'aliases' => 
-    array (
-      'PayPal' => 'Srmklive\\PayPal\\Facades\\PayPal',
-    ),
     'providers' => 
     array (
       0 => 'Srmklive\\PayPal\\Providers\\PayPalServiceProvider',
+    ),
+    'aliases' => 
+    array (
+      'PayPal' => 'Srmklive\\PayPal\\Facades\\PayPal',
     ),
   ),
 );

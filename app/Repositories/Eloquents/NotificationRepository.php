@@ -77,7 +77,7 @@ class NotificationRepository extends BaseRepository
 
             Mail::to($request->email)->queue(new TestMail());
             return [
-                "message" => __('static.mail_sent_response'),
+                "message" => "Mail sent successfully!",
                 "success" =>true
             ];
 

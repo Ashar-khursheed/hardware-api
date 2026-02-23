@@ -3,14 +3,14 @@
 namespace App\Repositories\Eloquents;
 
 use Exception;
-use Carbon\Carbon;
-use App\Models\Order;
 use App\Models\Point;
-use App\Helpers\Helpers;
 use App\Enums\WalletPointsDetail;
-use Illuminate\Support\Facades\DB;
 use App\Http\Traits\WalletPointsTrait;
 use App\GraphQL\Exceptions\ExceptionHandler;
+use App\Helpers\Helpers;
+use App\Models\Order;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Prettus\Repository\Eloquent\BaseRepository;
 use Prettus\Repository\Criteria\RequestCriteria;
 
@@ -90,6 +90,7 @@ class PointsRepository extends BaseRepository
         return false;
     }
 
+
     public function rewardPoints()
     {
         DB::beginTransaction();
@@ -105,6 +106,7 @@ class PointsRepository extends BaseRepository
                         if ($rewardPoints) {
                             $this->creditPoints($order->consumer_id, $rewardPoints, WalletPointsDetail::REWARD . ' #' . $order->order_number, $order->id);
                         }
+                        // dd($order->id, $order->total, "inside",  $rewardPoints);
                     }
                 }
             }

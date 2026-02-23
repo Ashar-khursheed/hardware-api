@@ -24,7 +24,7 @@ class ContactUsRepository extends BaseRepository
                 Mail::to(env('MAIL_FROM_ADDRESS'))->send(new MailContactUs($request));
             } catch (Exception $e) {}
             return response()->json([
-                'message' => __('static.contact_us_response') ,
+                'message' => 'Thank you for contact us, we will contact you shortly.' ,
                 'success' => true
             ], 200);
 

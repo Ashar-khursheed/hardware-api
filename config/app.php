@@ -125,8 +125,6 @@ return [
 
     'cipher' => 'AES-256-CBC',
 
-    'paginate' => 15,
-
     /*
     |--------------------------------------------------------------------------
     | Maintenance Mode Driver
@@ -188,7 +186,6 @@ return [
         Cartalyst\Stripe\Laravel\StripeServiceProvider::class,
         Maatwebsite\Excel\ExcelServiceProvider::class,
         Intervention\Image\ImageServiceProvider::class,
-         Jackiedo\DotenvEditor\DotenvEditorServiceProvider::class,
         /*
          * Package Service Providers...
          */
@@ -222,8 +219,6 @@ return [
         'Stripe' => Cartalyst\Stripe\Laravel\Facades\Stripe::class,
         'Excel' => Maatwebsite\Excel\Facades\Excel::class,
         'Image' => Intervention\Image\Facades\Image::class,
-            'DotenvEditor' => Jackiedo\DotenvEditor\Facades\DotenvEditor::class,
-
     ])->toArray(),
 
 ];

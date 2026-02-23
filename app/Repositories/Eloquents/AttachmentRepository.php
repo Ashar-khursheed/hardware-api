@@ -41,7 +41,7 @@ class AttachmentRepository extends BaseRepository
 
             return $this->model->findOrFail($id);
 
-        } catch (Exception $e) {
+        } catch (Exception $e){
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
@@ -51,7 +51,6 @@ class AttachmentRepository extends BaseRepository
     {
         DB::beginTransaction();
         try {
-
             $attachments = Helpers::createAttachment();
             if ($request->hasFile('attachments')) {
                 $attachments = Helpers::storeImage($request->attachments, $attachments, 'attachment');
@@ -74,7 +73,7 @@ class AttachmentRepository extends BaseRepository
             $attachment = $this->model->findOrFail($id);
             return Helpers::deleteImage($attachment);
 
-        } catch (Exception $e) {
+        } catch (Exception $e){
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
@@ -86,7 +85,7 @@ class AttachmentRepository extends BaseRepository
 
             return $this->model->whereIn('id', $ids)->delete();
 
-        } catch (Exception $e) {
+        } catch (Exception $e){
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }

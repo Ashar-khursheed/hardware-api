@@ -2,12 +2,12 @@
 
 namespace App\Repositories\Eloquents;
 
+use App\Enums\RoleEnum;
 use Exception;
 use App\Models\Coupon;
-use App\Enums\RoleEnum;
-use App\Helpers\Helpers;
 use Illuminate\Support\Facades\DB;
 use App\GraphQL\Exceptions\ExceptionHandler;
+use App\Helpers\Helpers;
 use Prettus\Repository\Eloquent\BaseRepository;
 use Prettus\Repository\Criteria\RequestCriteria;
 
@@ -53,10 +53,10 @@ class CouponRepository extends BaseRepository
 
             $coupon = $this->model->with(['products','exclude_products'])->findOrFail($id);
             if ($this->verifySingleCoupon($coupon)) {
-                return $coupon?->toJson();
+                return $coupon;
             }
 
-            throw new Exception(__('errors.unauthorised_action'), 403);
+            throw new Exception("This action is unauthorized", 403);
 
         } catch (Exception $e){
 
@@ -97,13 +97,6 @@ class CouponRepository extends BaseRepository
                 $coupon->exclude_products;
             }
 
-            $locales =  Helpers::getAllActiveLocales();
-            foreach ($locales as $locale) {
-                $coupon->setTranslation('title', $locale, $request['title'])
-                    ->setTranslation('description', $locale, $request['description'])
-                    ->save();
-            }
-
             DB::commit();
             return $coupon;
 
@@ -137,8 +130,6 @@ class CouponRepository extends BaseRepository
                     $coupon->exclude_products;
                 }
             }
-
-            $this->setTranslation($coupon, $request);
 
             DB::commit();
             $coupon = $coupon->fresh();
@@ -189,13 +180,5 @@ class CouponRepository extends BaseRepository
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    public function setTranslation($coupon, $request)
-    {
-        $locale = app()->getLocale();
-        return $coupon->setTranslation('title', $locale, $request['title'])
-        ->setTranslation('description', $locale, $request['description'])
-        ->save();
     }
 }

@@ -4,7 +4,6 @@ namespace App\Repositories\Eloquents;
 
 use Exception;
 use App\Models\Brand;
-use App\Helpers\Helpers;
 use App\Imports\BrandImport;
 use App\Exports\BrandsExport;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +39,7 @@ class BrandRepository extends BaseRepository
     {
         try {
 
-            return $this->model->findOrFail($id)?->toJson();
+            return $this->model->findOrFail($id);
 
         } catch (Exception $e){
 
@@ -64,15 +63,6 @@ class BrandRepository extends BaseRepository
             ]);
 
             $brand->brand_image;
-
-            $locales =  Helpers::getAllActiveLocales();
-            foreach ($locales as $locale) {
-                $brand->setTranslation('name', $locale, $request['name'])
-                    ->setTranslation('meta_title', $locale, $request['meta_title'])
-                    ->setTranslation('meta_description', $locale, $request['meta_description'])
-                    ->save();
-            }
-
             DB::commit();
 
             $brand = $brand->fresh();
@@ -110,8 +100,13 @@ class BrandRepository extends BaseRepository
             }
 
             $brand->brand_image;
-            $this->setTranslation($brand, $request);
             DB::commit();
+
+            $brand = $brand->fresh();
+            if (isset($request['slug'])) {
+                $brand->slug = $request['slug'];
+                $brand->save();
+            }
 
             return $brand;
 
@@ -183,7 +178,7 @@ class BrandRepository extends BaseRepository
     {
         try {
 
-            return route('admin.brands.export');
+            return route('brands.export');
 
         } catch (Exception $e) {
 
@@ -207,21 +202,11 @@ class BrandRepository extends BaseRepository
     {
         try {
 
-            $brand = $this->model->where('slug', $slug)->firstOrFail();
-            return $brand?->toJson();
+            return $this->model->where('slug', $slug)->firstOrFail();
 
         } catch (Exception $e) {
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    function setTranslation($brand, $request)
-    {
-        $locale = app()->getLocale();
-        return $brand->setTranslation('name', $locale, $request['name'])
-            ->setTranslation('meta_title', $locale, $request['meta_title'])
-            ->setTranslation('meta_description', $locale, $request['meta_description'])
-            ->save();
     }
 }

@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(CountriesSeeder::class);
         $this->call(StateSeeder::class);
-        // $this->call(RoleSeeder::class);
+        $this->call(RoleSeeder::class);
         $this->call(CurrencySeeder::class);
         $this->call(DefaultImagesSeeder::class);
         $this->call(ThemeSeeder::class);

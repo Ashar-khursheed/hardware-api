@@ -120,7 +120,7 @@ class CartRepository extends BaseRepository
                 return $cart;
             }
 
-            throw new Exception(__('errors.quantity_limit_exceeded',['quantity' => $request->quantity]), 400);
+            throw new Exception("You cannot add more than {$request->quantity} items.", 400);
 
         } catch (Exception $e) {
 
@@ -149,21 +149,13 @@ class CartRepository extends BaseRepository
     {
         try {
 
-            if (isset($request['zone_ids']) && $request['zone_ids']) {
-                $outOfZoneProduct = Helpers::verifyProductByZone($request['product_id'], $request['zone_ids']);
-
-                if (!empty($outOfZoneProduct)) {
-                    throw new Exception(__('errors.out_of_zone_product'), 400);
-                }
-            }
-
             $subTotal = Helpers::getSubTotal($request);
             $cart = $this->getCartData($request);
 
             if ($cart) {
                 $quantity = $cart->quantity + $request['quantity'];
                 if (!$this->isStockAvailable($request, $quantity)) {
-                    throw new Exception(__('errors.quantity_limit_exceeded',['quantity' => $cart->quantity]), 400);
+                    throw new Exception("You cannot add more than {$cart->quantity} items.", 400);
                 }
 
                 $request['quantity'] = $cart->quantity + $request['quantity'];

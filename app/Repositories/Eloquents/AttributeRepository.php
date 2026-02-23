@@ -3,7 +3,6 @@
 namespace App\Repositories\Eloquents;
 
 use Exception;
-use App\Helpers\Helpers;
 use App\Models\Attribute;
 use App\Imports\AttributeImport;
 use App\Exports\AttributesExport;
@@ -40,7 +39,7 @@ class AttributeRepository extends BaseRepository
    {
         try {
 
-            return $this->model->with('attribute_values')->findOrFail($id)?->toJson();
+            return $this->model->with('attribute_values')->findOrFail($id);
 
         } catch (Exception $e){
 
@@ -72,11 +71,6 @@ class AttributeRepository extends BaseRepository
 
             $attribute->attribute_values;
 
-            $locales =  Helpers::getAllActiveLocales();
-            foreach ($locales as $locale) {
-                $attribute->setTranslation('name', $locale, $request['name'])->save();
-            }
-
             DB::commit();
             return $attribute;
 
@@ -96,7 +90,6 @@ class AttributeRepository extends BaseRepository
             $attribute->update($request);
 
             if (isset ($request['value']) && $attribute) {
-                $attributeValueIds= [];
                 foreach($request['value'] as $attributeValueData) {
                     if (empty($attributeValueData['id']) && isset($attributeValueData['value'])) {
                         $attributeValueIds[] = $attribute->attribute_values()->create($attributeValueData)->id;
@@ -111,8 +104,6 @@ class AttributeRepository extends BaseRepository
                 $attribute->attribute_values()->whereNotIn('id',$attributeValueIds)->delete();
                 $attribute->attribute_values;
             }
-
-            $this->setTranslation($attribute, $request);
 
             DB::commit();
             return $attribute;
@@ -185,7 +176,7 @@ class AttributeRepository extends BaseRepository
     {
         try {
 
-            return route('admin.attributes.export');
+            return route('attributes.export');
 
         } catch (Exception $e) {
 
@@ -203,11 +194,5 @@ class AttributeRepository extends BaseRepository
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    public function setTranslation($page, $request)
-    {
-        $locale = app()->getLocale();
-        return $page->setTranslation('name', $locale, $request['name'])->save();
     }
 }

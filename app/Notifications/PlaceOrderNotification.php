@@ -5,7 +5,6 @@ namespace App\Notifications;
 use App\Models\Order;
 use App\Enums\RoleEnum;
 use App\Helpers\Helpers;
-use App\SMS\PlaceOrderSMS;
 use Illuminate\Bus\Queueable;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use Illuminate\Notifications\Notification;
@@ -34,56 +33,27 @@ class PlaceOrderNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return [PlaceOrderSMS::class,'database','mail'];
-    }
-
-    public function toSend(object $notifiable)
-    {
-        switch($this->roleName) {
-            case RoleEnum::CONSUMER:
-                return $this->toConsumerSMS($notifiable);
-            case RoleEnum::VENDOR:
-                return $this->toVendorSMS($notifiable);
-            case RoleEnum::ADMIN:
-                return $this->toAdminSMS($notifiable);
-        }
-    }
-
-    public function toAdminSMS($notifiable)
-    {
-        return (new PlaceOrderSMS)->sendSMS($notifiable, $this->roleName, $this->order);
-    }
-
-    public function toVendorSMS($notifiable)
-    {
-        return (new PlaceOrderSMS)->sendSMS($notifiable, $this->roleName, $this->order);
-    }
-
-    public function toConsumerSMS($notifiable)
-    {
-        return (new PlaceOrderSMS)->sendSMS($notifiable, $this->roleName, $this->order);
+        return ['mail','database'];
     }
 
     /**
      * Get the mail representation of the notification.
      */
-    public function toMail(object $notifiable)
+    public function toMail(object $notifiable): MailMessage
     {
-        $settings = Helpers::getSettings();
-        if($settings['email']['order_confirmation_mail']) {
-            switch($this->roleName) {
-                case RoleEnum::CONSUMER:
-                   return $this->toConsumerMail();
-                case RoleEnum::VENDOR:
-                    return $this->toVendorMail();
-                case RoleEnum::ADMIN:
-                    return $this->toAdminMail();
-            }
+        switch($this->roleName) {
+            case RoleEnum::CONSUMER:
+               return $this->toConsumerMail();
+            case RoleEnum::VENDOR:
+                return $this->toVendorMail();
+            case RoleEnum::ADMIN:
+                return $this->toAdminMail();
         }
     }
 
     public function toAdminMail(): MailMessage
     {
+
         $invoiceData = [
             'order' => $this->order,
             'settings' => Helpers::getSettings(),
@@ -110,6 +80,7 @@ class PlaceOrderNotification extends Notification
         ];
 
         $invoice = PDF::loadView('emails.invoice', $invoiceData);
+
         return (new MailMessage)
             ->subject("New Order #{$this->order?->order_number} from Your Store")
             ->line('Congratulations! A new order has been received from your store.')
@@ -130,6 +101,7 @@ class PlaceOrderNotification extends Notification
         ];
 
         $invoice = PDF::loadView('emails.invoice', $invoiceData);
+
         if ($this->order?->consumer_id) {
             $consumer = Helpers::getConsumerById($this->order?->consumer_id);
             if ($consumer) {
@@ -156,21 +128,20 @@ class PlaceOrderNotification extends Notification
     {
         switch($this->roleName) {
             case RoleEnum::CONSUMER:
-                $message = __('notifications.place_order_consumer',['orderNumber' => $this->order?->order_number]);
+                $message = "Your order has been successfully placed. Order ID: #{$this->order?->order_number}. Thank you for choosing us.";
                 break;
             case RoleEnum::VENDOR:
-                $message = __('notifications.place_order_vendor',['orderNumber' => $this->order?->order_number]);
+                $message = "A consumer has ordered from your catalog. Order ID: #{$this->order?->order_number}. Please ensure prompt fulfillment.";
                 break;
             case RoleEnum::ADMIN:
-                $message = __('notifications.place_order_admin',['orderNumber' => $this->order?->order_number]);
+                $message = "An order has been placed successfully. Order ID: #{$this->order?->order_number}. Your prompt attention is requested.";
                 break;
         }
 
         return [
-            'title' => __('notifications.place_order_title'),
+            'title' => "Order has been placed",
             'message' => $message,
-            'type' => "order",
-            'order_number' => $this->order?->order_number
+            'type' => "order"
         ];
     }
 }

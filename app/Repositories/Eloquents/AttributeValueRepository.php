@@ -3,7 +3,6 @@
 namespace App\Repositories\Eloquents;
 
 use Exception;
-use App\Helpers\Helpers;
 use App\Models\AttributeValue;
 use App\GraphQL\Exceptions\ExceptionHandler;
 use Prettus\Repository\Eloquent\BaseRepository;
@@ -36,7 +35,7 @@ class AttributeValueRepository extends BaseRepository
     {
         try {
 
-            return $this->model->findOrFail($id)?->toJson();
+            return $this->model->findOrFail($id);
 
         } catch (Exception $e){
 
@@ -51,11 +50,6 @@ class AttributeValueRepository extends BaseRepository
             'value' => $request->value
         ]);
 
-        $locales =  Helpers::getAllActiveLocales();
-        foreach ($locales as $locale) {
-            $attributeValue->setTranslation('value', $locale, $request['value'])->save();
-        }
-
         return $attributeValue;
     }
 
@@ -65,7 +59,7 @@ class AttributeValueRepository extends BaseRepository
 
             $attributeValue = $this->model->findOrFail($id);
             $attributeValue->update($request);
-            $this->setTranslation($attributeValue,$request);
+
             return $attributeValue;
 
         } catch (Exception $e){
@@ -84,11 +78,5 @@ class AttributeValueRepository extends BaseRepository
 
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    function setTranslation($attributeValue, $request)
-    {
-        $locale = app()->getLocale();
-        return $attributeValue->setTranslation('value', $locale, $request['value'])->save();
     }
 }

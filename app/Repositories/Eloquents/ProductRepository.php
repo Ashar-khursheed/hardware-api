@@ -76,10 +76,10 @@ class ProductRepository extends BaseRepository
             $product->makeVisible(config('enums.product.visible'));
             $product->setAppends(config('enums.product.appends'));
             if ($this->verifySingleProduct($product)) {
-                return $product->toJson();
+                return $product;
             }
 
-            throw new Exception(__('errors.unauthorised_action'), 403);
+            throw new Exception("This action is unauthorized", 403);
 
         } catch (Exception $e) {
 
@@ -103,7 +103,7 @@ class ProductRepository extends BaseRepository
             if ($roleName != RoleEnum::ADMIN) {
                 $settings = Helpers::getSettings();
                 if ($roleName == RoleEnum::VENDOR && !Helpers::isMultiVendorEnable()) {
-                    throw new Exception(__('auth.multi_vendor_deactivated'), 403);
+                    throw new Exception('The multi-vendor feature is currently deactivated.', 403);
                 }
 
                 $isAutoApprove = $settings['activation']['product_auto_approve'];
@@ -163,7 +163,6 @@ class ProductRepository extends BaseRepository
                 'sale_price' => $sale_price ?? $request->price,
                 'discount' => $discount ?? $request->discount,
                 'sku' => $request->sku,
-                'external_details' => $request->external_details,
                 'is_external' => $request->is_external,
                 'external_url' => $request->external_url,
                 'external_button_text' => $request->external_button_text,
@@ -184,8 +183,6 @@ class ProductRepository extends BaseRepository
                 'size_chart_image_id' => $request->size_chart_image_id,
                 'estimated_delivery_text' => $request->estimated_delivery_text,
                 'return_policy_text' => $request->return_policy_text,
-                'read_button_text' => $request->read_button_text,
-                'read_document_id' => $request->read_document_id,
                 'safe_checkout' => $request->safe_checkout,
                 'secure_checkout' => $request->secure_checkout,
                 'social_share' => $request->social_share,
@@ -195,7 +192,6 @@ class ProductRepository extends BaseRepository
                 'status' => $request->status,
                 'is_approved' => $isAutoApprove ?? true,
                 'store_id' => $request->store_id,
-                'publication_id' => $request->publication_id,
                 'is_licensable' => $request->is_licensable,
                 'preview_url' =>  $request->preview_url,
                 'brand_id' => $request->brand_id,
@@ -204,12 +200,11 @@ class ProductRepository extends BaseRepository
                 'watermark_position' => $request->watermark_position,
                 'watermark_image_id' => $request->watermark_image_id,
                 'wholesale_price_type' => $request->wholesale_price_type,
-                'separator' => $request->separator ?? null,
+                'separator' => $request->separator,
                 'preview_type' => $request->preview_type,
                 'is_licensekey_auto' => $request->is_licensekey_auto,
                 'preview_audio_file_id' => $request->preview_audio_file_id,
-                'preview_video_file_id' => $request->preview_video_file_id,
-                'slug' => $request->slug
+                'preview_video_file_id' => $request->preview_video_file_id
             ]);
 
             $this->relationProductModels($request, $product);
@@ -223,17 +218,6 @@ class ProductRepository extends BaseRepository
 
                 $product->variations;
             }
-
-            $locales =  Helpers::getAllActiveLocales();
-            foreach ($locales as $locale) {
-                $product->setTranslation('name', $locale, $request['name'])
-                    ->setTranslation('short_description', $locale, $request['short_description'])
-                    ->setTranslation('description', $locale, $request['description'])
-                    ->setTranslation('meta_title', $locale, $request['meta_title'])
-                    ->setTranslation('meta_description', $locale, $request['meta_description'])
-                    ->save();
-            }
-
 
             DB::commit();
             return $product;
@@ -298,16 +282,6 @@ class ProductRepository extends BaseRepository
             if (isset($request['product_meta_image_id'])) {
                 $product->product_meta_image()->associate($request['product_meta_image_id']);
                 $product->product_meta_image;
-            }
-
-            if (isset($request['read_document_id'])) {
-                $product->read_document()->associate($request['read_document_id']);
-                $product->read_document;
-            }
-
-            if (isset($request['authors_id']) && is_array($request['authors_id'])) {
-                $product->authors()->sync($request['authors_id']);
-                $product->authors;
             }
 
             if (isset($request['product_galleries_id'])) {
@@ -396,6 +370,12 @@ class ProductRepository extends BaseRepository
                         $variationsIds[] = $variation['id'];
                         $variationData->update($variation);
                         $variationData?->attribute_values()->sync($variation['attribute_values']);
+                    }
+
+                    if (isset($variation['variation_galleries_id'])) {
+                        $variationData->variation_galleries()->sync([]);
+                        $variationData->variation_galleries()->sync($variation['variation_galleries_id'], false);
+                        $variationData->variation_galleries;
                     }
 
                     if ($request['product_type'] == ProductType::DIGITAL && isset($variation['digital_file_ids'])) {
@@ -519,7 +499,7 @@ class ProductRepository extends BaseRepository
     {
         try {
 
-            return route('admin.products.export');
+            return route('products.export');
 
         } catch (Exception $e) {
 
@@ -553,7 +533,7 @@ class ProductRepository extends BaseRepository
 
     public function getVariationSKU($sku)
     {
-        $i = 1;
+        $i = 0;
         do {
 
             $sku = $sku . str_repeat(' (COPY)', $i++);
@@ -605,11 +585,6 @@ class ProductRepository extends BaseRepository
         if (isset($request->categories)) {
             $product->categories()->attach($request->categories);
             $product->categories;
-        }
-
-        if (isset($request->authors_id)) {
-            $product->authors()->attach($request->authors_id);
-            $product->authors;
         }
 
         if (isset($request->tags)) {
@@ -715,7 +690,7 @@ class ProductRepository extends BaseRepository
                 'discount' => $variation['discount'] ?? null,
                 'stock_status' => $variation['stock_status'],
                 'variation_image_id' => $variation['variation_image_id'] ?? null,
-                'separator' => $variation['separator'] ?? null,
+                'separator' => $variation['separator'],
                 'is_licensable' => $variation['is_licensable'],
                 'is_licensekey_auto' => $variation['is_licensekey_auto'],
                 'status' => $variation['status'],
@@ -731,6 +706,11 @@ class ProductRepository extends BaseRepository
 
             if ($variation['is_licensable'] && !$variation['is_licensekey_auto'] && $variation['license_keys']) {
                 $this->updateOrCreateProductLicenseKeys($product, $variation['license_keys'], $variationData?->id);
+            }
+
+            if (isset($variation['variation_galleries_id'])) {
+                $variationData->variation_galleries()->attach($variation['variation_galleries_id']);
+                $variationData->variation_galleries;
             }
 
             $product?->wholesales()?->delete();
@@ -782,7 +762,7 @@ class ProductRepository extends BaseRepository
                 ->with(config('enums.product.with'))
                 ->firstOrFail()
                 ->setAppends(config('enums.product.appends'))
-                ->makeVisible(config('enums.product.visible'))?->toJson();
+                ->makeVisible(config('enums.product.visible'));
 
         } catch (Exception $e) {
 
@@ -800,9 +780,6 @@ class ProductRepository extends BaseRepository
                     'id',
                     'name',
                     'slug',
-                    'price',
-                    'sale_price',
-                    'discount',
                     'product_thumbnail_id'
                 ]);
 
@@ -889,16 +866,5 @@ class ProductRepository extends BaseRepository
         }
 
         return $attributes->get();
-    }
-
-    function setTranslation($product, $request)
-    {
-        $locale = app()->getLocale();
-        return $product->setTranslation('name', $locale, $request['name'])
-            ->setTranslation('short_description', $locale, $request['short_description'])
-            ->setTranslation('description', $locale, $request['description'])
-            ->setTranslation('meta_title', $locale, $request['meta_title'])
-            ->setTranslation('meta_description', $locale, $request['meta_description'])
-            ->save();
     }
 }

@@ -80,13 +80,6 @@ class NoticeRepository extends BaseRepository
             $vendorIds = $this->getAllVendorIds();
             $notice->reader()->attach($vendorIds);
 
-            $locales =  Helpers::getAllActiveLocales();
-            foreach ($locales as $locale) {
-                $notice->setTranslation('title', $locale, $request['title'])
-                    ->setTranslation('description', $locale, $request['description'])
-                    ->save();
-            }
-
             DB::commit();
             return $notice;
 
@@ -107,8 +100,6 @@ class NoticeRepository extends BaseRepository
 
             $notice->reader()->sync([]);
             $notice->reader()->sync($this->getAllVendorIds());
-
-            $this->setTranslation($notice, $request);
 
             DB::commit();
 
@@ -179,13 +170,5 @@ class NoticeRepository extends BaseRepository
             DB::rollback();
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-    }
-
-    function setTranslation($notice, $request)
-    {
-        $locale = app()->getLocale();
-        return $notice->setTranslation('title', $locale, $request['title'])
-            ->setTranslation('description', $locale, $request['description'])
-            ->save();
     }
 }
