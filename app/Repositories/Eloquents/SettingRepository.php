@@ -13,7 +13,6 @@ use App\Enums\PaymentMethod;
 use App\Enums\FrontSettingsEnum;
 use Illuminate\Support\Facades\DB;
 use App\GraphQL\Exceptions\ExceptionHandler;
-use Jackiedo\DotenvEditor\Facades\DotenvEditor;
 use Prettus\Repository\Eloquent\BaseRepository;
 
 class SettingRepository extends BaseRepository
@@ -105,105 +104,86 @@ class SettingRepository extends BaseRepository
     {
         try {
 
+            $keys = [];
+
             if (isset($value['general'])) {
-                DotenvEditor::setKeys([
-                    'APP_NAME' => $value['general']["site_name"]
-                ]);
+                $keys['APP_NAME'] = $value['general']['site_name'];
             }
 
             if (isset($value['email'])) {
-                DotenvEditor::setKeys([
-                    'MAIL_MAILER' => $value['email']["mail_mailer"],
-                    'MAIL_HOST' => $value['email']["mail_host"],
-                    'MAIL_PORT' => $value['email']["mail_port"],
-                    'MAIL_USERNAME' => $value['email']["mail_username"],
-                    'MAIL_PASSWORD' => $value['email']["mail_password"],
-                    'MAIL_ENCRYPTION' => $value['email']["mail_encryption"],
-                    'MAIL_FROM_ADDRESS' => $value['email']["mail_from_address"],
-                    'MAIL_FROM_NAME' => $value['email']["mail_from_name"],
-                    'MAILGUN_DOMAIN' => $value['email']["mailgun_domain"],
-                    'MAILGUN_SECRET' => $value['email']["mailgun_secret"],
-                ]);
+                $keys['MAIL_MAILER']        = $value['email']['mail_mailer'];
+                $keys['MAIL_HOST']          = $value['email']['mail_host'];
+                $keys['MAIL_PORT']          = $value['email']['mail_port'];
+                $keys['MAIL_USERNAME']      = $value['email']['mail_username'];
+                $keys['MAIL_PASSWORD']      = $value['email']['mail_password'];
+                $keys['MAIL_ENCRYPTION']    = $value['email']['mail_encryption'];
+                $keys['MAIL_FROM_ADDRESS']  = $value['email']['mail_from_address'];
+                $keys['MAIL_FROM_NAME']     = $value['email']['mail_from_name'];
+                $keys['MAILGUN_DOMAIN']     = $value['email']['mailgun_domain'];
+                $keys['MAILGUN_SECRET']     = $value['email']['mailgun_secret'];
             }
 
             if (isset($value['media_configuration'])) {
-                DotenvEditor::setKeys([
-                    'MEDIA_DISK' => $value['media_configuration']["media_disk"],
-                ]);
-
-                DotenvEditor::save();
-                if ($value['media_configuration'] == 'aws') {
-                    DotenvEditor::setKeys([
-                        'AWS_ACCESS_KEY_ID' => $value['media_configuration']["aws_access_key_id"],
-                        'AWS_SECRET_ACCESS_KEY' => $value['media_configuration']["aws_secret_access_key"],
-                        'AWS_BUCKET' => $value['media_configuration']["aws_bucket"],
-                        'AWS_DEFAULT_REGION' => $value['media_configuration']["aws_default_region"],
-                    ]);
-
-                    DotenvEditor::save();
+                $keys['MEDIA_DISK'] = $value['media_configuration']['media_disk'];
+                if ($value['media_configuration']['media_disk'] === 'aws') {
+                    $keys['AWS_ACCESS_KEY_ID']     = $value['media_configuration']['aws_access_key_id'];
+                    $keys['AWS_SECRET_ACCESS_KEY'] = $value['media_configuration']['aws_secret_access_key'];
+                    $keys['AWS_BUCKET']            = $value['media_configuration']['aws_bucket'];
+                    $keys['AWS_DEFAULT_REGION']    = $value['media_configuration']['aws_default_region'];
                 }
             }
 
             if (isset($value['google_reCaptcha'])) {
-                DotenvEditor::setKeys([
-                    'GOOGLE_RECAPTCHA_SECRET' => $value['google_reCaptcha']["secret"],
-                    'GOOGLE_RECAPTCHA_KEY' => $value['google_reCaptcha']["site_key"],
-                ]);
-
-                DotenvEditor::save();
+                $keys['GOOGLE_RECAPTCHA_SECRET'] = $value['google_reCaptcha']['secret'];
+                $keys['GOOGLE_RECAPTCHA_KEY']    = $value['google_reCaptcha']['site_key'];
             }
 
             if (isset($value['payment_methods'])) {
-                $paypal_mode = $value['payment_methods']['paypal']["sandbox_mode"]? 'sandbox' : 'live';
-                DotenvEditor::setKeys([
-                    'PAYPAL_MODE' =>  $paypal_mode,
-                    'PAYPAL_CLIENT_ID' => $value['payment_methods']['paypal']["client_id"],
-                    'PAYPAL_CLIENT_SECRET' => $value['payment_methods']['paypal']["client_secret"],
-                    'STRIPE_API_KEY' => $value['payment_methods']['stripe']["key"],
-                    'STRIPE_SECRET_KEY' => $value['payment_methods']['stripe']["secret"],
-                    'RAZORPAY_KEY' => $value['payment_methods']['razorpay']["key"],
-                    'RAZORPAY_SECRET' => $value['payment_methods']['razorpay']["secret"],
-                    'MOLLIE_KEY' => $value['payment_methods']['mollie']["secret_key"],
-                    'CCAVENUE_SANDBOX_MODE' => $value['payment_methods']['ccavenue']["sandbox_mode"],
-                    'CCAVENUE_MERCHANT_ID' => $value['payment_methods']['ccavenue']["merchant_id"],
-                    'CCAVENUE_ACCESS_CODE' => $value['payment_methods']['ccavenue']["access_code"],
-                    'CCAVENUE_WORKING_KEY' => $value['payment_methods']['ccavenue']["working_key"],
-                    'PHONEPE_SANDBOX_MODE' => $value['payment_methods']['phonepe']["sandbox_mode"],
-                    'PHONEPE_MERCHANT_ID' => $value['payment_methods']['phonepe']["merchant_id"],
-                    'PHONEPE_SALT_KEY' => $value['payment_methods']['phonepe']["salt_key"] ,
-                    'PHONEPE_SALT_INDEX' => $value['payment_methods']['phonepe']["salt_index"],
-                    'INSTAMOJO_SANDBOX_MODE' => $value['payment_methods']['instamojo']["sandbox_mode"],
-                    'INSTAMOJO_CLIENT_ID' => $value['payment_methods']['instamojo']["client_id"],
-                    'INSTAMOJO_CLIENT_SECRET' => $value['payment_methods']['instamojo']["client_secret"],
-                    'INSTAMOJO_SALT_KEY' => $value['payment_methods']['instamojo']["salt_key"],
-                    'BKASH_SANDBOX_MODE' =>  $value['payment_methods']['bkash']["sandbox_mode"],
-                    'BKASH_APP_KEY' =>  $value['payment_methods']['bkash']["app_key"],
-                    'BKASH_APP_SECRET' =>  $value['payment_methods']['bkash']["app_secret"],
-                    'BKASH_USERNAME' =>  $value['payment_methods']['bkash']["username"],
-                    'BKASH_PASSWORD' =>  $value['payment_methods']['bkash']["password"],
-                    'FLW_SANDBOX_MOD' =>  $value['payment_methods']['flutter_wave']["sandbox_mode"],
-                    'FLW_PUBLIC_KEY' =>  $value['payment_methods']['flutter_wave']["public_key"],
-                    'FLW_SECRET_KEY' =>  $value['payment_methods']['flutter_wave']["secret_key"],
-                    'FLW_SECRET_HASH' =>  $value['payment_methods']['flutter_wave']["secret_hash"],
-                    'PAYSTACK_SANDBOX_MODE' =>  $value['payment_methods']['paystack']["sandbox_mode"],
-                    'PAYSTACK_PUBLIC_KEY' =>  $value['payment_methods']['paystack']["public_key"],
-                    'PAYSTACK_SECRET_KEY' =>  $value['payment_methods']['paystack']["secret_key"],
-                    'SSLC_STORE_ID' =>  $value['payment_methods']['sslcommerz']["store_id"],
-                    'SSLC_STORE_PASSWORD' =>  $value['payment_methods']['sslcommerz']["store_password"],
-                    'SSLC_SANDBOX_MODE' =>  $value['payment_methods']['sslcommerz']["sandbox_mode"],
-                ]);
-
-                DotenvEditor::save();
+                $keys['PAYPAL_MODE']           = $value['payment_methods']['paypal']['sandbox_mode'] ? 'sandbox' : 'live';
+                $keys['PAYPAL_CLIENT_ID']      = $value['payment_methods']['paypal']['client_id'];
+                $keys['PAYPAL_CLIENT_SECRET']  = $value['payment_methods']['paypal']['client_secret'];
+                $keys['STRIPE_API_KEY']        = $value['payment_methods']['stripe']['key'];
+                $keys['STRIPE_SECRET_KEY']     = $value['payment_methods']['stripe']['secret'];
+                $keys['RAZORPAY_KEY']          = $value['payment_methods']['razorpay']['key'];
+                $keys['RAZORPAY_SECRET']       = $value['payment_methods']['razorpay']['secret'];
+                $keys['MOLLIE_KEY']            = $value['payment_methods']['mollie']['secret_key'];
+                $keys['CCAVENUE_SANDBOX_MODE'] = $value['payment_methods']['ccavenue']['sandbox_mode'];
+                $keys['CCAVENUE_MERCHANT_ID']  = $value['payment_methods']['ccavenue']['merchant_id'];
+                $keys['CCAVENUE_ACCESS_CODE']  = $value['payment_methods']['ccavenue']['access_code'];
+                $keys['CCAVENUE_WORKING_KEY']  = $value['payment_methods']['ccavenue']['working_key'];
+                $keys['PHONEPE_SANDBOX_MODE']  = $value['payment_methods']['phonepe']['sandbox_mode'];
+                $keys['PHONEPE_MERCHANT_ID']   = $value['payment_methods']['phonepe']['merchant_id'];
+                $keys['PHONEPE_SALT_KEY']      = $value['payment_methods']['phonepe']['salt_key'];
+                $keys['PHONEPE_SALT_INDEX']    = $value['payment_methods']['phonepe']['salt_index'];
+                $keys['INSTAMOJO_SANDBOX_MODE']   = $value['payment_methods']['instamojo']['sandbox_mode'];
+                $keys['INSTAMOJO_CLIENT_ID']      = $value['payment_methods']['instamojo']['client_id'];
+                $keys['INSTAMOJO_CLIENT_SECRET']  = $value['payment_methods']['instamojo']['client_secret'];
+                $keys['INSTAMOJO_SALT_KEY']       = $value['payment_methods']['instamojo']['salt_key'];
+                $keys['BKASH_SANDBOX_MODE'] = $value['payment_methods']['bkash']['sandbox_mode'];
+                $keys['BKASH_APP_KEY']      = $value['payment_methods']['bkash']['app_key'];
+                $keys['BKASH_APP_SECRET']   = $value['payment_methods']['bkash']['app_secret'];
+                $keys['BKASH_USERNAME']     = $value['payment_methods']['bkash']['username'];
+                $keys['BKASH_PASSWORD']     = $value['payment_methods']['bkash']['password'];
+                $keys['FLW_SANDBOX_MOD']    = $value['payment_methods']['flutter_wave']['sandbox_mode'];
+                $keys['FLW_PUBLIC_KEY']     = $value['payment_methods']['flutter_wave']['public_key'];
+                $keys['FLW_SECRET_KEY']     = $value['payment_methods']['flutter_wave']['secret_key'];
+                $keys['FLW_SECRET_HASH']    = $value['payment_methods']['flutter_wave']['secret_hash'];
+                $keys['PAYSTACK_SANDBOX_MODE'] = $value['payment_methods']['paystack']['sandbox_mode'];
+                $keys['PAYSTACK_PUBLIC_KEY']   = $value['payment_methods']['paystack']['public_key'];
+                $keys['PAYSTACK_SECRET_KEY']   = $value['payment_methods']['paystack']['secret_key'];
+                $keys['SSLC_STORE_ID']       = $value['payment_methods']['sslcommerz']['store_id'];
+                $keys['SSLC_STORE_PASSWORD'] = $value['payment_methods']['sslcommerz']['store_password'];
+                $keys['SSLC_SANDBOX_MODE']   = $value['payment_methods']['sslcommerz']['sandbox_mode'];
             }
 
             if (isset($value['sms_methods'])) {
-                DotenvEditor::setKeys([
-                    'TWILIO_SID' =>  $value['sms_methods']['twilio']["twilio_sid"],
-                    'TWILIO_AUTH_TOKEN' =>  $value['sms_methods']['twilio']["twilio_auth_token"],
-                    'TWILIO_NUMBER' =>  $value['sms_methods']['twilio']["twilio_number"],
-                ]);
+                $keys['TWILIO_SID']        = $value['sms_methods']['twilio']['twilio_sid'];
+                $keys['TWILIO_AUTH_TOKEN'] = $value['sms_methods']['twilio']['twilio_auth_token'];
+                $keys['TWILIO_NUMBER']     = $value['sms_methods']['twilio']['twilio_number'];
+            }
 
-                DotenvEditor::save();
+            if (!empty($keys)) {
+                $this->writeEnv($keys);
             }
 
         } catch (Exception $e) {
@@ -211,5 +191,33 @@ class SettingRepository extends BaseRepository
             DB::rollback();
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
+    }
+
+    /**
+     * Write key-value pairs to the .env file using native PHP.
+     * Existing keys are updated in-place; new keys are appended.
+     */
+    protected function writeEnv(array $keys): void
+    {
+        $envPath = base_path('.env');
+        $content = file_exists($envPath) ? file_get_contents($envPath) : '';
+
+        foreach ($keys as $key => $value) {
+            // Wrap value in quotes if it contains spaces or special chars
+            $escaped = (strpbrk((string) $value, " \t\n\r#") !== false)
+                ? '"' . addslashes((string) $value) . '"'
+                : (string) $value;
+
+            $pattern = '/^' . preg_quote($key, '/') . '\s*=.*/m';
+            $replacement = $key . '=' . $escaped;
+
+            if (preg_match($pattern, $content)) {
+                $content = preg_replace($pattern, $replacement, $content);
+            } else {
+                $content = rtrim($content) . "\n" . $replacement . "\n";
+            }
+        }
+
+        file_put_contents($envPath, $content);
     }
 }
