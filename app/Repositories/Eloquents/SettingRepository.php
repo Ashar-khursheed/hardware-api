@@ -80,16 +80,20 @@ class SettingRepository extends BaseRepository
             $settings = $this->model->first();
             $settings->update($request);
             $settings = $settings->fresh();
-            $this->env($request['values']);
 
             DB::commit();
-            return $settings;
 
         } catch (Exception $e) {
 
             DB::rollback();
             throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
+
+        // Write .env AFTER the DB commit so a permission failure
+        // does not roll back the database settings update.
+        $this->env($request['values']);
+
+        return $settings;
     }
 
     public function setDefaultCurrencyBasePrice($settings)
@@ -197,28 +201,37 @@ class SettingRepository extends BaseRepository
     /**
      * Write key-value pairs to the .env file using native PHP.
      * Existing keys are updated in-place; new keys are appended.
+     * Permission errors are logged but do NOT abort the request —
+     * the database settings have already been committed.
      */
     protected function writeEnv(array $keys): void
     {
-        $envPath = base_path('.env');
-        $content = file_exists($envPath) ? file_get_contents($envPath) : '';
+        try {
+            $envPath = base_path('.env');
+            $content = file_exists($envPath) ? file_get_contents($envPath) : '';
 
-        foreach ($keys as $key => $value) {
-            // Wrap value in quotes if it contains spaces or special chars
-            $escaped = (strpbrk((string) $value, " \t\n\r#") !== false)
-                ? '"' . addslashes((string) $value) . '"'
-                : (string) $value;
+            foreach ($keys as $key => $value) {
+                // Wrap value in quotes if it contains spaces or special chars
+                $escaped = (strpbrk((string) $value, " \t\n\r#") !== false)
+                    ? '"' . addslashes((string) $value) . '"'
+                    : (string) $value;
 
-            $pattern = '/^' . preg_quote($key, '/') . '\s*=.*/m';
-            $replacement = $key . '=' . $escaped;
+                $pattern = '/^' . preg_quote($key, '/') . '\s*=.*/m';
+                $replacement = $key . '=' . $escaped;
 
-            if (preg_match($pattern, $content)) {
-                $content = preg_replace($pattern, $replacement, $content);
-            } else {
-                $content = rtrim($content) . "\n" . $replacement . "\n";
+                if (preg_match($pattern, $content)) {
+                    $content = preg_replace($pattern, $replacement, $content);
+                } else {
+                    $content = rtrim($content) . "\n" . $replacement . "\n";
+                }
             }
-        }
 
-        file_put_contents($envPath, $content);
+            file_put_contents($envPath, $content);
+
+        } catch (\Throwable $e) {
+            // Log and continue — .env write is best-effort;
+            // settings are already persisted in the database.
+            \Illuminate\Support\Facades\Log::warning('writeEnv: could not write .env file: ' . $e->getMessage());
+        }
     }
 }
