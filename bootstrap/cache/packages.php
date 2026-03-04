@@ -79,13 +79,6 @@
       0 => 'Laravel\\Tinker\\TinkerServiceProvider',
     ),
   ),
-  'laravesl/phpunit' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'Laravesl\\Phpunit\\PhUntPr\\PhUnt',
-    ),
-  ),
   'maatwebsite/excel' => 
   array (
     'aliases' => 
