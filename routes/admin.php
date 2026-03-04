@@ -256,4 +256,20 @@ Route::group(['middleware' => ['localization','auth:sanctum']], function () {
 
   // Settings
   Route::put('settings', 'App\Http\Controllers\SettingController@update')->middleware('can:setting.edit');
+
+  // Languages
+  Route::apiResource('language', 'App\Http\Controllers\LanguageController');
+  Route::put('language/{id}/{status}', 'App\Http\Controllers\LanguageController@status')->middleware('can:language.edit');
+  Route::put('language/{id}/{rtl}/rtl', 'App\Http\Controllers\LanguageController@rtl')->middleware('can:language.edit');
+
+  // Translations
+  Route::get('translation', 'App\Http\Controllers\LanguageController@getFilesInFolder');
+  Route::get('translation/{group}', function (\Illuminate\Http\Request $request, $group) {
+    $request->merge(['filename' => $group]);
+    return app(\App\Http\Controllers\LanguageController::class)->getFileContent($request);
+  });
+  Route::put('translation/{group}', function (\Illuminate\Http\Request $request, $group) {
+    $request->merge(['filename' => $group]);
+    return app(\App\Http\Controllers\LanguageController::class)->saveFileContent($request);
+  });
 });
