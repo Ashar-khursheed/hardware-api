@@ -12,7 +12,13 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Attachment extends Media implements HasMedia
 {
-    use HasFactory,SoftDeletes, InteractsWithMedia;
+    use HasFactory, SoftDeletes, InteractsWithMedia;
+
+    public function registerMediaCollections(): void
+    {
+        $disk = env('MEDIA_DISK', config('media-library.disk_name', 'local'));
+        $this->addMediaCollection('attachment')->useDisk($disk);
+    }
 
     protected $table = 'attachments';
 
