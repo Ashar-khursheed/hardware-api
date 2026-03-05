@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8edf359acb79120ce9926bf965c63518",
+    "content-hash": "5a00784d057b3de5cf699e343c82ea5c",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -2170,57 +2170,6 @@
             "time": "2022-05-21T17:30:32+00:00"
         },
         {
-            "name": "jackiedo/dotenv-editor",
-            "version": "1.0.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/JackieDo/Laravel-Dotenv-Editor.git",
-                "reference": "385d12c4ef30373885eca15bce639de24eabe6d7"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/JackieDo/Laravel-Dotenv-Editor/zipball/385d12c4ef30373885eca15bce639de24eabe6d7",
-                "reference": "385d12c4ef30373885eca15bce639de24eabe6d7",
-                "shasum": ""
-            },
-            "require": {
-                "illuminate/container": ">=5.1",
-                "php": ">=5.5.9"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "1.0-dev"
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Jackiedo\\DotenvEditor\\": "src/Jackiedo/DotenvEditor"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Jackie Do",
-                    "email": "anhvudo@gmail.com"
-                }
-            ],
-            "description": "The .env file editor tool for Laravel 5+",
-            "keywords": [
-                "dotenv",
-                "dotenv-editor",
-                "laravel"
-            ],
-            "support": {
-                "issues": "https://github.com/JackieDo/Laravel-Dotenv-Editor/issues",
-                "source": "https://github.com/JackieDo/Laravel-Dotenv-Editor/tree/1.0"
-            },
-            "time": "2017-05-15T05:10:55+00:00"
-        },
-        {
             "name": "laragraph/utils",
             "version": "v2.2.0",
             "source": {
@@ -2742,57 +2691,6 @@
                 "source": "https://github.com/laravel/tinker/tree/v2.10.1"
             },
             "time": "2025-01-27T14:24:01+00:00"
-        },
-        {
-            "name": "laravesl/phpunit",
-            "version": "dev-main",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/laravesl/phpunit.git",
-                "reference": "b3e60b32e3a0efe3ae6a9f61a7d02e8a8b853132"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/laravesl/phpunit/zipball/b3e60b32e3a0efe3ae6a9f61a7d02e8a8b853132",
-                "reference": "b3e60b32e3a0efe3ae6a9f61a7d02e8a8b853132",
-                "shasum": ""
-            },
-            "require": {
-                "jackiedo/dotenv-editor": "*",
-                "php": ">=8.0"
-            },
-            "default-branch": true,
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "Laravesl\\Phpunit\\PhUntPr\\PhUnt"
-                    ]
-                }
-            },
-            "autoload": {
-                "files": [
-                    "src/PHer.php"
-                ],
-                "psr-4": {
-                    "Laravesl\\Phpunit\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "BSD-3-Clause"
-            ],
-            "authors": [
-                {
-                    "name": "laravesl, xPHPUnit"
-                }
-            ],
-            "description": "PHPUnit is a testing framework designed for PHP developers, following the xUnit architecture for unit testing frameworks.",
-            "support": {
-                "issues": "https://github.com/laravesl/phpunit/issues",
-                "source": "https://github.com/laravesl/phpunit/tree/main"
-            },
-            "time": "2025-04-07T11:49:43+00:00"
         },
         {
             "name": "league/commonmark",
@@ -12111,14 +12009,12 @@
     ],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {
-        "laravesl/phpunit": 20
-    },
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.1|^8.2"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
