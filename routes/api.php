@@ -23,6 +23,15 @@ Route::get('settings', 'App\Http\Controllers\SettingController@index');
 Route::get('app/settings', 'App\Http\Controllers\AppSettingController@index');
 Route::get('themeOptions', 'App\Http\Controllers\ThemeOptionController@index');
 
+// Translations
+Route::group(['middleware' => ['localization']], function () {
+  Route::get('translation', 'App\Http\Controllers\LanguageController@getFilesInFolder');
+  Route::get('translation/{group}', function (\Illuminate\Http\Request $request, $group) {
+    $request->merge(['filename' => $group]);
+    return app(\App\Http\Controllers\LanguageController::class)->getFileContent($request);
+  });
+});
+
 // Webhooks
 Route::post('/paypal/webhook', 'App\Http\Controllers\WebhookController@paypal')->name('paypal.webhook');
 Route::post('/razorpay/webhook', 'App\Http\Controllers\WebhookController@razorpay')->name('razorpay.webhook');
