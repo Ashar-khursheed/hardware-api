@@ -16,6 +16,9 @@ use App\Enums\StockStatus;
 use App\Imports\ProductImport;
 use App\Models\AttributeValue;
 use App\Exports\ProductsExport;
+use App\Jobs\ProcessProductExport;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use App\GraphQL\Exceptions\ExceptionHandler;
@@ -507,27 +510,52 @@ class ProductRepository extends BaseRepository
         }
     }
 
-  public function export($request = null)
+//   public function export($request = null)
+// {
+//     try {
+//         set_time_limit(0);
+//         ini_set('memory_limit', '512M'); // ✅ reasonable limit, not -1
+
+//         $filters = $request
+//             ? array_filter($request->all(), fn($value) => !is_null($value))
+//             : [];
+
+//         $filename = 'exports/products_' . now()->format('Ymd_His') . '.csv';
+
+//         Excel::store(new ProductsExport($filters), $filename, 'public');
+
+//         // ✅ Use Storage facade for correct URL — not url('storage/...')
+//         return response()->json([
+//             'url' => Storage::disk('public')->url($filename)
+//         ]);
+
+//     } catch (Exception $e) {
+//         \Log::error('Export error: ' . $e->getMessage());
+//         throw new ExceptionHandler($e->getMessage(), $e->getCode());
+//     }
+// }
+public function export($request = null)
 {
     try {
-        set_time_limit(0);
-        ini_set('memory_limit', '512M'); // ✅ reasonable limit, not -1
-
         $filters = $request
             ? array_filter($request->all(), fn($value) => !is_null($value))
             : [];
 
-        $filename = 'exports/products_' . now()->format('Ymd_His') . '.csv';
+        // Unique key for this export job
+        $cacheKey = 'product_export_' . Str::uuid();
 
-        Excel::store(new ProductsExport($filters), $filename, 'public');
+        // ✅ Mark as processing immediately
+        Cache::put($cacheKey, ['status' => 'processing'], now()->addMinutes(30));
 
-        // ✅ Use Storage facade for correct URL — not url('storage/...')
+        // ✅ Dispatch to background queue — returns instantly
+        ProcessProductExport::dispatch($filters, $cacheKey);
+
         return response()->json([
-            'url' => Storage::disk('public')->url($filename)
+            'status'    => 'processing',
+            'cache_key' => $cacheKey
         ]);
 
     } catch (Exception $e) {
-        \Log::error('Export error: ' . $e->getMessage());
         throw new ExceptionHandler($e->getMessage(), $e->getCode());
     }
 }

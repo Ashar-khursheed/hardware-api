@@ -45,6 +45,9 @@ Route::group(['middleware' => ['localization','auth:sanctum']], function () {
   Route::put('updatePassword', 'App\Http\Controllers\AccountController@updatePassword');
   Route::put('updateStoreProfile', 'App\Http\Controllers\AccountController@updateStoreProfile');
 
+  Route::get('product/csv/export/status', [ProductController::class, 'exportStatus']);
+
+
   // Address
   Route::apiResource('address', 'App\Http\Controllers\AddressController');
 
