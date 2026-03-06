@@ -25,6 +25,9 @@ Route::get('themeOptions', 'App\Http\Controllers\ThemeOptionController@index');
 
 // Translations
 Route::group(['middleware' => ['localization']], function () {
+  Route::apiResource('language', 'App\Http\Controllers\LanguageController', [
+    'only' => ['index', 'show'],
+  ]);
   Route::get('translation', 'App\Http\Controllers\LanguageController@getFilesInFolder');
   Route::get('translation/{group}', function (\Illuminate\Http\Request $request, $group) {
     $request->merge(['filename' => $group]);
