@@ -9,8 +9,9 @@ use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithChunkReading; // ✅ ADD
 
-class ProductsExport implements FromQuery, WithMapping, WithHeadings
+class ProductsExport implements FromQuery, WithMapping, WithHeadings, WithChunkReading // ✅ ADD WithChunkReading
 {
     use Exportable;
 
@@ -21,19 +22,27 @@ class ProductsExport implements FromQuery, WithMapping, WithHeadings
         $this->filters = $filters;
     }
 
+    // ✅ Process 100 products at a time — prevents memory exhaustion on 10k+ products
+    public function chunkSize(): int
+    {
+        return 100;
+    }
+
     /**
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function query()
     {
-        // No eager loading here — relations are loaded per-row in map()
-        // to avoid memory exhaustion with large datasets
-        $product = Product::whereNull('deleted_at')->latest('created_at');
+        // ✅ Eager load ALL relations in query() with chunking
+        // Laravel-Excel will process 100 products at a time automatically
+        // This replaces the per-row $product->load() in map() which caused
+        // 10,000+ individual DB queries for 10k products
+        $product = Product::with($this->getRelations())
+            ->whereNull('deleted_at')
+            ->latest('created_at');
 
         return $this->filter($product, (object) $this->filters);
     }
-
-
 
     private $translatableFields = [
         'name',
@@ -47,22 +56,22 @@ class ProductsExport implements FromQuery, WithMapping, WithHeadings
 
     public function columns(): array
     {
-        $product = Product::whereNull('deleted_at')->latest('created_at')->first();
+        $product = Product::with($this->getRelations())
+            ->whereNull('deleted_at')
+            ->latest('created_at')
+            ->first();
 
         if (!$product) {
             return [];
         }
-
-        $product->load($this->getRelations());
 
         return array_keys($this->map($product));
     }
 
     public function map($product): array
     {
-        // Load relations per-row instead of all at once in query()
-        // This prevents memory exhaustion on large product sets
-        $product->load($this->getRelations());
+        // ✅ Relations already eager loaded in query() via WithChunkReading
+        // No per-row load() needed anymore — this was the main bottleneck
 
         $rows = $this->rows($product);
         $translateValues = $this->getTranslatedValues($product);
@@ -259,7 +268,7 @@ class ProductsExport implements FromQuery, WithMapping, WithHeadings
             return $localeName !== 'es';
         });
 
-        $translatedValues = []; // Initialized to avoid undefined variable if locale is empty
+        $translatedValues = [];
 
         foreach ($this->translatableFields as $fieldLabel) {
             foreach ($locale as $localeName) {

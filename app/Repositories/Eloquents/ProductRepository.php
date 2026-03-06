@@ -507,27 +507,30 @@ class ProductRepository extends BaseRepository
         }
     }
 
-    public function export($request = null)
-    {
-        try {
-            // Prevent timeouts and memory exhaustion for massive exports (e.g., 10k+ products)
-            set_time_limit(0);
-            ini_set('memory_limit', '-1');
+  public function export($request = null)
+{
+    try {
+        set_time_limit(0);
+        ini_set('memory_limit', '512M'); // ✅ reasonable limit, not -1
 
-            $filters = $request ? array_filter($request->all(), fn($value) => !is_null($value)) : [];
-            $filename = 'exports/products_' . now()->format('Ymd_His') . '.csv';
+        $filters = $request
+            ? array_filter($request->all(), fn($value) => !is_null($value))
+            : [];
 
-            Excel::store(new ProductsExport($filters), $filename, 'public');
+        $filename = 'exports/products_' . now()->format('Ymd_His') . '.csv';
 
-            $url = url('storage/' . $filename);
+        Excel::store(new ProductsExport($filters), $filename, 'public');
 
-            return response()->json(['url' => $url]);
+        // ✅ Use Storage facade for correct URL — not url('storage/...')
+        return response()->json([
+            'url' => Storage::disk('public')->url($filename)
+        ]);
 
-        } catch (Exception $e) {
-
-            throw new ExceptionHandler($e->getMessage(), $e->getCode());
-        }
+    } catch (Exception $e) {
+        \Log::error('Export error: ' . $e->getMessage());
+        throw new ExceptionHandler($e->getMessage(), $e->getCode());
     }
+}
 
     public function getReplicateProductName($name)
     {
