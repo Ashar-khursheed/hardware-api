@@ -88,27 +88,17 @@ class Attachment extends Media implements HasMedia
     // {
     //     return str_replace(config('app.url'), "", $this->original_url);
     // }
-public function getAssetUrlAttribute()
+    public function getAssetUrlAttribute()
 {
-    if ($this->disk === 's3' || $this->disk === 'aws') {
-        $path = $this->model_type === 'App\\Models\\Product'
-            ? 'products/' . $this->file_name
-            : $this->id . '/' . $this->file_name;
-        return \Storage::disk('s3')->url($path);
+    $mediaDisk = env('MEDIA_DISK', config('media-library.disk_name', 'public'));
+
+    if ($mediaDisk === 's3' || $mediaDisk === 'aws') {
+        return \Storage::disk('s3')->url('products/' . $this->file_name);
     }
+
     return $this->getUrl();
 }
 
-public function getOriginalUrlAttribute()
-{
-    if ($this->disk === 's3' || $this->disk === 'aws') {
-        $path = $this->model_type === 'App\\Models\\Product'
-            ? 'products/' . $this->file_name
-            : $this->id . '/' . $this->file_name;
-        return \Storage::disk('s3')->url($path);
-    }
-    return $this->getUrl();
-}
     /**
      * Get Media original url
      */
@@ -122,16 +112,16 @@ public function getOriginalUrlAttribute()
 
     //     return $this->getUrl();
     // }
-//     public function getOriginalUrlAttribute()
-// {
-//     $mediaDisk = env('MEDIA_DISK', config('media-library.disk_name', 'public'));
+    public function getOriginalUrlAttribute()
+{
+    $mediaDisk = env('MEDIA_DISK', config('media-library.disk_name', 'public'));
 
-//     if ($mediaDisk === 's3' || $mediaDisk === 'aws') {
-//         return \Storage::disk('s3')->url('products/' . $this->file_name);
-//     }
+    if ($mediaDisk === 's3' || $mediaDisk === 'aws') {
+        return \Storage::disk('s3')->url('products/' . $this->file_name);
+    }
 
-//     return $this->getUrl();
-// }
+    return $this->getUrl();
+}
 
 
     /**
