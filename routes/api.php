@@ -186,7 +186,7 @@ Route::group(['middleware' => ['localization','auth:sanctum']], function () {
   Route::put('updateStoreProfile', 'App\Http\Controllers\AccountController@updateStoreProfile');
 
   // Address
-  Route::apiResource('address', 'App\Http\Controllers\AddressController');
+  // Route::apiResource('address', 'App\Http\Controllers\AddressController');
 
   // Payment Account
   Route::apiResource('paymentAccount', 'App\Http\Controllers\PaymentAccountController');
