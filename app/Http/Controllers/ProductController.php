@@ -15,7 +15,7 @@ use App\Http\Requests\UpdateProductRequest;
 use App\Http\Requests\CreateProductRequest;
 use App\GraphQL\Exceptions\ExceptionHandler;
 use App\Repositories\Eloquents\ProductRepository;
-
+use Illuminate\Support\Facades\Cache;
 class ProductController extends Controller
 {
     public $repository;
