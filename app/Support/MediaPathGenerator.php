@@ -1,4 +1,4 @@
-// app/Support/MediaPathGenerator.php
+<?php
 
 namespace App\Support;
 
