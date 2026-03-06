@@ -510,6 +510,9 @@ class ProductRepository extends BaseRepository
     public function export($request = null)
     {
         try {
+            // Prevent timeouts and memory exhaustion for massive exports (e.g., 10k+ products)
+            set_time_limit(0);
+            ini_set('memory_limit', '-1');
 
             $filters = $request ? array_filter($request->all(), fn($value) => !is_null($value)) : [];
             $filename = 'exports/products_' . now()->format('Ymd_His') . '.csv';
