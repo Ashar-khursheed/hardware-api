@@ -5,6 +5,7 @@ namespace App\GraphQL\Exceptions;
 use Exception;
 use GraphQL\Error\ClientAware;
 use GraphQL\Error\ProvidesExtensions;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
@@ -19,6 +20,9 @@ class ExceptionHandler extends Exception implements ClientAware, ProvidesExtensi
 
         $this->message = $message;
         $this->statusCode = $statusCode;
+
+        // Log so errors appear in storage/logs/laravel.log
+        Log::error('ExceptionHandler: ' . $message, ['status' => $statusCode]);
     }
 
     public function isClientSafe(): bool
