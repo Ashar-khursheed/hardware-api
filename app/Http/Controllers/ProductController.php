@@ -28,6 +28,12 @@ class ProductController extends Controller
 
         $this->repository = $repository;
     }
+    public function exportStatus(Request $request)
+{
+    $cacheKey = $request->cache_key;
+    $status = Cache::get($cacheKey, ['status' => 'not_found']);
+    return response()->json($status);
+}
 
     /**
      * Display a listing of the resource.
