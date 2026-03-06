@@ -45,7 +45,6 @@ Route::group(['middleware' => ['localization','auth:sanctum']], function () {
   Route::put('updatePassword', 'App\Http\Controllers\AccountController@updatePassword');
   Route::put('updateStoreProfile', 'App\Http\Controllers\AccountController@updateStoreProfile');
 
-  Route::get('product/csv/export/status', [ProductController::class, 'exportStatus']);
 
 
   // Address
@@ -85,6 +84,7 @@ Route::group(['middleware' => ['localization','auth:sanctum']], function () {
   Route::post('product/replicate', 'App\Http\Controllers\ProductController@replicate')->middleware('can:product.edit');
   Route::put('product/{id}/{status}', 'App\Http\Controllers\ProductController@status')->middleware('can:product.edit');
   Route::post('product/csv/export', 'App\Http\Controllers\ProductController@export')->name('products.export')->middleware('can:product.index');
+  Route::get('product/csv/export/status', 'App\Http\Controllers\ProductController@exportStatus')->name('products.export.status')->middleware('can:product.index');
   Route::post('product/csv/import', 'App\Http\Controllers\ProductController@import')->middleware('can:product.create');
   Route::put('product/approve/{id}/{status}', 'App\Http\Controllers\ProductController@approve')->middleware('can:product.edit');
   Route::post('product/deleteAll', 'App\Http\Controllers\ProductController@deleteAll')->middleware('can:product.destroy');
