@@ -1,5 +1,165 @@
 <?php
 
+// namespace App\Models;
+
+// use App\Helpers\Helpers;
+// use Spatie\MediaLibrary\HasMedia;
+// use Spatie\MediaLibrary\InteractsWithMedia;
+// use Illuminate\Database\Eloquent\SoftDeletes;
+// use Illuminate\Database\Eloquent\Relations\HasMany;
+// use Illuminate\Database\Eloquent\Factories\HasFactory;
+// use Spatie\MediaLibrary\MediaCollections\Models\Media;
+
+// class Attachment extends Media implements HasMedia
+// {
+//     use HasFactory, SoftDeletes, InteractsWithMedia;
+
+//     public function registerMediaCollections(): void
+//     {
+//         $disk = env('MEDIA_DISK', config('media-library.disk_name', 'local'));
+//         $this->addMediaCollection('attachment')->useDisk($disk);
+//     }
+
+//     protected $table = 'attachments';
+
+//     /**
+//      * The attributes that are mass assignable.
+//      *
+//      * @var array
+//     */
+
+//     protected $fillable = [
+//         'name',
+//         'file_name',
+//         'collection_name',
+//         'model_id',
+//         'model_type',
+//         'order_column',
+//         'disk',
+//         'conversions_disk',
+//         'mime_type',
+//         'size',
+//         'custom_properties',
+//         'generated_conversions',
+//         'responsive_images',
+//         'manipulations',
+//         'original_url',
+//         'preview_url',
+//         'created_by_id'
+//     ];
+
+//     protected $casts = [
+//         'custom_properties' => 'json',
+//         'generated_conversions' => 'json',
+//         'responsive_images' => 'json',
+//         'manipulations' => 'json',
+//     ];
+
+//     protected $visible = [
+//         'id',
+//         'name',
+//         'file_name',
+//         'disk',
+//         'mime_type',
+//         'original_url',
+//         'created_by_id',
+//         'asset_url',
+//         'created_at',
+//     ];
+
+//     protected $appends = [
+//         'asset_url' ,
+//         'original_url'
+//     ];
+
+//     public static function boot()
+//     {
+//         parent::boot();
+//         static::saving(function ($model) {
+//             $model->model_id = $model->id;
+//             $model->created_by_id = Helpers::getCurrentUserId() ?? Helpers::getAdmin()?->id;
+//         });
+//     }
+
+    
+
+//     /**
+//      * Get Media relative path
+//      */
+//     // public function getAssetUrlAttribute()
+//     // {
+//     //     return str_replace(config('app.url'), "", $this->original_url);
+//     // }
+//     public function getAssetUrlAttribute()
+// {
+//     $mediaDisk = env('MEDIA_DISK', config('media-library.disk_name', 'public'));
+
+//     if ($mediaDisk === 's3' || $mediaDisk === 'aws') {
+//         return \Storage::disk('s3')->url('products/' . $this->file_name);
+//     }
+
+//     return $this->getUrl();
+// }
+
+//     /**
+//      * Get Media original url
+//      */
+//     // public function getOriginalUrlAttribute()
+//     // {
+//     //     $mediaDisk = env('MEDIA_DISK', config('media-library.disk_name', 'public'));
+        
+//     //     if ($mediaDisk === 's3' || $mediaDisk === 'aws') {
+//     //         return \Storage::disk('s3')->url($this->id . '/' . $this->file_name);
+//     //     }
+
+//     //     return $this->getUrl();
+//     // }
+//     public function getOriginalUrlAttribute()
+// {
+//     $mediaDisk = env('MEDIA_DISK', config('media-library.disk_name', 'public'));
+
+//     if ($mediaDisk === 's3' || $mediaDisk === 'aws') {
+//         return \Storage::disk('s3')->url('products/' . $this->file_name);
+//     }
+
+//     return $this->getUrl();
+// }
+
+
+//     /**
+//      * @return Int
+//      */
+//     public function getId($request)
+//     {
+//         return ($request->id) ? $request->id : $request->route('attachment')->id;
+//     }
+
+//     /**
+//      * @return HasMany
+//      */
+//     public function review_image(): HasMany
+//     {
+//         return $this->hasMany(Review::class, 'review_image_id');
+//     }
+
+//     /**
+//      * @return HasMany
+//      */
+//     public function category_image(): HasMany
+//     {
+//         return $this->hasMany(Category::class, 'category_image_id');
+//     }
+
+//     /**
+//      * @return HasMany
+//      */
+//     public function category_icon(): HasMany
+//     {
+//         return $this->hasMany(Category::class, 'category_icon_id');
+//     }
+// }
+
+
 namespace App\Models;
 
 use App\Helpers\Helpers;
@@ -9,6 +169,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 
 class Attachment extends Media implements HasMedia
 {
@@ -26,8 +188,7 @@ class Attachment extends Media implements HasMedia
      * The attributes that are mass assignable.
      *
      * @var array
-    */
-
+     */
     protected $fillable = [
         'name',
         'file_name',
@@ -68,7 +229,7 @@ class Attachment extends Media implements HasMedia
     ];
 
     protected $appends = [
-        'asset_url' ,
+        'asset_url',
         'original_url'
     ];
 
@@ -81,80 +242,59 @@ class Attachment extends Media implements HasMedia
         });
     }
 
+    /**
+     * Resolve the correct S3 path by checking custom_properties first,
+     * then falling back to a cached S3 existence check.
+     */
     private function resolveS3Path(): string
-{
-    // Mirror your MediaPathGenerator logic
-    if ($this->model_type === 'App\\Models\\Product') {
-        return 'products/' . $this->file_name;
+    {
+        // 1. If path was explicitly stored at upload time, use it directly (no S3 call needed)
+        if ($this->hasCustomProperty('s3_path')) {
+            return $this->getCustomProperty('s3_path');
+        }
+
+        // 2. Cache the existence check to avoid repeated S3 API calls per image
+        $cacheKey = 's3_path_' . $this->id;
+
+        return Cache::remember($cacheKey, now()->addDays(7), function () {
+            $productPath = 'products/' . $this->file_name;
+
+            if (Storage::disk('s3')->exists($productPath)) {
+                return $productPath;
+            }
+
+            // Spatie default: {media_id}/{file_name}
+            return $this->id . '/' . $this->file_name;
+        });
     }
-
-    // For everything else (17859/, 18264/, etc.) — Spatie default
-    return $this->id . '/' . $this->file_name;
-}
-public function getAssetUrlAttribute(): string
-{
-    $mediaDisk = env('MEDIA_DISK', config('media-library.disk_name', 'public'));
-
-    if ($mediaDisk === 's3' || $mediaDisk === 'aws') {
-        return \Storage::disk('s3')->url($this->resolveS3Path());
-    }
-
-    return $this->getUrl();
-}
-
-public function getOriginalUrlAttribute(): string
-{
-    $mediaDisk = env('MEDIA_DISK', config('media-library.disk_name', 'public'));
-
-    if ($mediaDisk === 's3' || $mediaDisk === 'aws') {
-        return \Storage::disk('s3')->url($this->resolveS3Path());
-    }
-
-    return $this->getUrl();
-}
 
     /**
-     * Get Media relative path
+     * Get asset URL
      */
-    // public function getAssetUrlAttribute()
-    // {
-    //     return str_replace(config('app.url'), "", $this->original_url);
-    // }
-//     public function getAssetUrlAttribute()
-// {
-//     $mediaDisk = env('MEDIA_DISK', config('media-library.disk_name', 'public'));
+    public function getAssetUrlAttribute(): string
+    {
+        $mediaDisk = env('MEDIA_DISK', config('media-library.disk_name', 'public'));
 
-//     if ($mediaDisk === 's3' || $mediaDisk === 'aws') {
-//         return \Storage::disk('s3')->url('products/' . $this->file_name);
-//     }
+        if ($mediaDisk === 's3' || $mediaDisk === 'aws') {
+            return Storage::disk('s3')->url($this->resolveS3Path());
+        }
 
-//     return $this->getUrl();
-// }
+        return $this->getUrl();
+    }
 
     /**
-     * Get Media original url
+     * Get original URL
      */
-    // public function getOriginalUrlAttribute()
-    // {
-    //     $mediaDisk = env('MEDIA_DISK', config('media-library.disk_name', 'public'));
-        
-    //     if ($mediaDisk === 's3' || $mediaDisk === 'aws') {
-    //         return \Storage::disk('s3')->url($this->id . '/' . $this->file_name);
-    //     }
+    public function getOriginalUrlAttribute(): string
+    {
+        $mediaDisk = env('MEDIA_DISK', config('media-library.disk_name', 'public'));
 
-    //     return $this->getUrl();
-    // }
-//     public function getOriginalUrlAttribute()
-// {
-//     $mediaDisk = env('MEDIA_DISK', config('media-library.disk_name', 'public'));
+        if ($mediaDisk === 's3' || $mediaDisk === 'aws') {
+            return Storage::disk('s3')->url($this->resolveS3Path());
+        }
 
-//     if ($mediaDisk === 's3' || $mediaDisk === 'aws') {
-//         return \Storage::disk('s3')->url('products/' . $this->file_name);
-//     }
-
-//     return $this->getUrl();
-// }
-
+        return $this->getUrl();
+    }
 
     /**
      * @return Int
