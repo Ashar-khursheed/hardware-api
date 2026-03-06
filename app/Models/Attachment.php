@@ -84,10 +84,20 @@ class Attachment extends Media implements HasMedia
     /**
      * Get Media relative path
      */
+    // public function getAssetUrlAttribute()
+    // {
+    //     return str_replace(config('app.url'), "", $this->original_url);
+    // }
     public function getAssetUrlAttribute()
-    {
-        return str_replace(config('app.url'), "", $this->original_url);
+{
+    $mediaDisk = env('MEDIA_DISK', config('media-library.disk_name', 'public'));
+
+    if ($mediaDisk === 's3' || $mediaDisk === 'aws') {
+        return \Storage::disk('s3')->url('products/' . $this->file_name);
     }
+
+    return $this->getUrl();
+}
 
     /**
      * Get Media original url
