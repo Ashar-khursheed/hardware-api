@@ -146,9 +146,9 @@ class ProductController extends Controller
         return $this->repository->getProductsExportUrl($request);
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        return $this->repository->export();
+        return $this->repository->export($request);
     }
 
     public function replicate(Request $request)

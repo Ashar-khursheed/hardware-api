@@ -6,13 +6,11 @@ use App\Enums\RoleEnum;
 use App\Models\Product;
 use App\Helpers\Helpers;
 use Maatwebsite\Excel\Concerns\FromQuery;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithChunkReading;
 
-class ProductsExport implements FromQuery, WithMapping, WithHeadings, WithChunkReading, ShouldQueue
+class ProductsExport implements FromQuery, WithMapping, WithHeadings
 {
     use Exportable;
 
@@ -35,10 +33,7 @@ class ProductsExport implements FromQuery, WithMapping, WithHeadings, WithChunkR
         return $this->filter($product, (object) $this->filters);
     }
 
-    public function chunkSize(): int
-    {
-        return 10; // Reduced from 50 to lower per-chunk memory usage
-    }
+
 
     private $translatableFields = [
         'name',

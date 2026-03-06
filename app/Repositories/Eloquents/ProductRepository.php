@@ -507,11 +507,12 @@ class ProductRepository extends BaseRepository
         }
     }
 
-    public function export()
+    public function export($request = null)
     {
         try {
 
-            return Excel::download(new ProductsExport, 'products.csv');
+            $filters = $request ? array_filter($request->all(), fn($value) => !is_null($value)) : [];
+            return Excel::download(new ProductsExport($filters), 'products.csv');
 
         } catch (Exception $e) {
 
