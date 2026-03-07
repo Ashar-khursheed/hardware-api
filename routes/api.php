@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\Route;
 
 
 // Countries & States
-// Route::apiResource('state', 'App\Http\Controllers\StateController');
-// Route::apiResource('country', 'App\Http\Controllers\CountryController');
+Route::apiResource('state', 'App\Http\Controllers\StateController');
+Route::apiResource('country', 'App\Http\Controllers\CountryController');
 
 // Settings & Theme Options
 Route::get('settings', 'App\Http\Controllers\SettingController@index');
