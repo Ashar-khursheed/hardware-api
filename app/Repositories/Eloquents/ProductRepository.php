@@ -501,24 +501,34 @@ public function import()
 {
     DB::beginTransaction();
     try {
-        // Store file to disk first — fixes PhpSpreadsheet "Invalid Spreadsheet" bug
-        $path = request()->file('products')->storeAs(
-            'temp', 
-            'import_' . time() . '.csv', 
-            'local'
-        );
+        // storage/app/imports/ folder me save karo
+        $filename = 'import_' . time() . '_' . uniqid() . '.csv';
+        $file = request()->file('products');
+        
+        // Direct absolute path use karo
+        $storagePath = storage_path('app/imports');
+        
+        // Directory create karo agar exist nahi karti
+        if (!file_exists($storagePath)) {
+            mkdir($storagePath, 0755, true);
+        }
+        
+        $fullPath = $storagePath . '/' . $filename;
+        $file->move($storagePath, $filename);
 
         $productImport = new ProductImport();
-        
+
         Excel::import(
             $productImport,
-            storage_path('app/' . $path),  // absolute path
+            $fullPath,
             null,
             \Maatwebsite\Excel\Excel::CSV
         );
 
-        // Clean up temp file
-        \Storage::disk('local')->delete($path);
+        // Clean up
+        if (file_exists($fullPath)) {
+            unlink($fullPath);
+        }
 
         DB::commit();
         return $productImport->getImportedProducts();
