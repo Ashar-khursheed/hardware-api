@@ -499,42 +499,30 @@ class ProductRepository extends BaseRepository
     // }
 public function import()
 {
-    DB::beginTransaction();
     try {
-        // storage/app/imports/ folder me save karo
-        $filename = 'import_' . time() . '_' . uniqid() . '.csv';
-        $file = request()->file('products');
-        
-        // Direct absolute path use karo
+        $filename    = 'import_' . time() . '_' . uniqid() . '.csv';
         $storagePath = storage_path('app/imports');
-        
-        // Directory create karo agar exist nahi karti
+
         if (!file_exists($storagePath)) {
             mkdir($storagePath, 0755, true);
         }
-        
+
         $fullPath = $storagePath . '/' . $filename;
-        $file->move($storagePath, $filename);
+        request()->file('products')->move($storagePath, $filename);
 
-        $productImport = new ProductImport();
+        // Unique cache key to track progress
+        $cacheKey = 'product_import_' . uniqid();
 
-        Excel::import(
-            $productImport,
-            $fullPath,
-            null,
-            \Maatwebsite\Excel\Excel::CSV
-        );
+        // Queue me dispatch — instantly return
+        \App\Jobs\ImportProductsJob::dispatch($fullPath, $cacheKey);
 
-        // Clean up
-        if (file_exists($fullPath)) {
-            unlink($fullPath);
-        }
-
-        DB::commit();
-        return $productImport->getImportedProducts();
+        return [
+            'status'    => 'processing',
+            'cache_key' => $cacheKey,
+            'message'   => 'Import started. Use cache_key to check status.',
+        ];
 
     } catch (Exception $e) {
-        DB::rollback();
         throw new ExceptionHandler($e->getMessage(), $e->getCode());
     }
 }
