@@ -34,7 +34,13 @@ class ProductController extends Controller
     $status = Cache::get($cacheKey, ['status' => 'not_found']);
     return response()->json($status);
 }
-
+// ProductController
+public function importStatus(Request $request)
+{
+    $status = \Illuminate\Support\Facades\Cache::get($request->cache_key);
+    if (!$status) return response()->json(['status' => 'not_found'], 404);
+    return response()->json($status);
+}
     /**
      * Display a listing of the resource.
      *
