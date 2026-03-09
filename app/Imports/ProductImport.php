@@ -2381,28 +2381,36 @@ use App\GraphQL\Exceptions\ExceptionHandler;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
-use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Concerns\WithCustomCsvSettings;
-
+use Illuminate\Validation\Rule;
 
 class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, WithCustomCsvSettings
 {
     private $products = [];
- public function getCsvSettings(): array
-    {
-        return [
-            'delimiter'        => ',',
-            'enclosure'        => '"',
-            'escape_character' => '"',  // ← CSV double-quote escaping
-            'input_encoding'   => 'UTF-8',
-        ];
-    }
+
+    // Local hostnames — media from these will NOT be re-downloaded
+    private $localHosts = [
+        'hardware.sparccpk.org',
+        'localhost',
+        '127.0.0.1',
+    ];
+
     // These fields are translatable — handled ONLY via setTranslations(), never via update()
     private $translateFields = [
         'name', 'short_description', 'description',
         'meta_title', 'meta_description',
         'estimated_delivery_text', 'return_policy_text'
     ];
+
+    public function getCsvSettings(): array
+    {
+        return [
+            'delimiter'        => ',',
+            'enclosure'        => '"',
+            'escape_character' => '"',
+            'input_encoding'   => 'UTF-8',
+        ];
+    }
 
     public function rules(): array
     {
@@ -2458,13 +2466,13 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     public function customValidationMessages()
     {
         return [
-            'name.required'                  => ('validation.name_Required'),
-            'name.string'                    => ('validation.name_in_string'),
-            'name.max'                       => ('validation.name_not_exceed'),
-            'name.unique'                    => ('validation.name_already_taken'),
-            'external_url.url'               => ('validation.external_url_must_be_valid'),
-            'product_thumbnail_url.url'      => ('validation.product_thumbnail_url_must_be_valid'),
-            'product_meta_image_url.url'     => __('validation.product_meta_image_url_must_be_valid'),
+            'name.required'              => ('validation.name_Required'),
+            'name.string'                => ('validation.name_in_string'),
+            'name.max'                   => ('validation.name_not_exceed'),
+            'name.unique'                => ('validation.name_already_taken'),
+            'external_url.url'           => ('validation.external_url_must_be_valid'),
+            'product_thumbnail_url.url'  => ('validation.product_thumbnail_url_must_be_valid'),
+            'product_meta_image_url.url' => __('validation.product_meta_image_url_must_be_valid'),
         ];
     }
 
@@ -2485,11 +2493,27 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
         }));
     }
 
+    // ─── Check if URL is on our own server ────────────────────────────────────
+    private function isLocalUrl(?string $url): bool
+    {
+        if (empty($url)) return false;
+        $host = parse_url($url, PHP_URL_HOST);
+        return in_array($host, $this->localHosts);
+    }
+
+    // ─── Extract media ID from local storage URL ───────────────────────────────
+    // URL: https://hardware.sparccpk.org/storage/1578/filename.webp → 1578
+    private function extractMediaId(?string $url): ?int
+    {
+        if (empty($url)) return null;
+        preg_match('/\/storage\/(\d+)\//', $url, $matches);
+        return isset($matches[1]) ? (int) $matches[1] : null;
+    }
+
     public function model(array $row)
     {
         DB::beginTransaction();
         try {
-            // Filter and clean the row data FIRST
             $row = $this->filterRow($row);
 
             $store_id      = null;
@@ -2507,7 +2531,6 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
                 $isAutoApprove = $settings['activation']['product_auto_approve'] ?? true;
             }
 
-            // Check if product exists by SKU for update
             $existingProduct = null;
             if (isset($row['sku']) && !empty($row['sku'])) {
                 $existingProduct = Product::where('sku', $row['sku'])
@@ -2515,48 +2538,41 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
                     ->first();
             }
 
-            // Prevent creating new product without a name
             if (!$existingProduct && empty($row['name'])) {
                 throw new Exception("Cannot create new product without a name. SKU: " . ($row['sku'] ?? 'unknown'));
             }
 
-            // Calculate variation-based pricing
             $price        = null;
             $sale_price   = null;
             $discount     = null;
             $quantity     = null;
             $stock_status = null;
 
-            // Capture explicit sale_price from CSV first
             if (isset($row['sale_price']) && !empty($row['sale_price'])) {
                 $sale_price = (float) $row['sale_price'];
             }
 
-            // Classified product — derive price/qty/discount from variations
             if (isset($row['variations']) && !empty($row['variations']) && isset($row['type']) && $row['type'] == 'classified') {
                 $variations = json_decode($row['variations']);
                 if (is_array($variations) && count($variations)) {
-                    $price              = min(array_column($variations, 'price'));
-                    $minPriceVariation  = $this->getMinPriceVariation($row, $price);
-                    $discount           = $minPriceVariation->discount ?? 0;
-                    $sale_price         = round($price - (($price * $discount) / 100), 2);
-                    $quantity           = max(array_column($variations, 'quantity'));
-                    $stock_status       = $quantity > 0 ? StockStatus::IN_STOCK : StockStatus::OUT_OF_STOCK;
+                    $price             = min(array_column($variations, 'price'));
+                    $minPriceVariation = $this->getMinPriceVariation($row, $price);
+                    $discount          = $minPriceVariation->discount ?? 0;
+                    $sale_price        = round($price - (($price * $discount) / 100), 2);
+                    $quantity          = max(array_column($variations, 'quantity'));
+                    $stock_status      = $quantity > 0 ? StockStatus::IN_STOCK : StockStatus::OUT_OF_STOCK;
                 }
             }
 
-            // Simple product stock status from quantity
             if (isset($row['quantity']) && !is_null($row['quantity'])) {
                 $stock_status = $row['quantity'] > 0 ? StockStatus::IN_STOCK : StockStatus::OUT_OF_STOCK;
             }
 
-            // Calculate sale_price from discount only if not already set
             if ($sale_price === null && isset($row['discount']) && !is_null($row['discount']) && $row['discount'] > 0) {
                 $mrpPrice   = $row['price'] ?? $price ?? 0;
                 $sale_price = round($mrpPrice - (($mrpPrice * $row['discount']) / 100), 2);
             }
 
-            // Update existing product or create new one
             if ($existingProduct) {
                 $product = $existingProduct;
                 $this->updateProduct($product, $row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status);
@@ -2564,27 +2580,19 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
                 $product = $this->createProduct($row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status);
             }
 
-            // Handle translatable fields (MERGE, never overwrite)
             $this->setTranslations($product, $row);
-
-            // Handle media files
             $this->handleMediaFiles($product, $row);
-
-            // Handle relationships
             $this->handleRelationships($product, $row, $existingProduct);
 
-            // Handle variations
             if (isset($row['variations']) && !is_null($row['variations']) && isset($row['type']) && $row['type'] == 'classified') {
                 $this->handleVariations($product, $row, $existingProduct);
             }
 
-            // Handle license keys
             if ($this->shouldHandleLicenseKeys($product, $row)) {
                 $license_keys = Helpers::explodeLicenseKeys($row['separator'], $row['license_keys']);
                 $this->updateOrCreateProductLicenseKeys($product, $license_keys);
             }
 
-            // Handle wholesale prices
             if (isset($row['wholesale_prices'])) {
                 $this->updateOrCreateWholesaleProduct($product, $row['wholesale_prices']);
             }
@@ -2603,7 +2611,6 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     {
         $updateData = [];
 
-        // Non-translatable fields only — translatable fields are handled by setTranslations()
         $fieldsToUpdate = [
             'product_type', 'type', 'unit', 'weight',
             'is_free_shipping', 'is_external', 'external_button_text', 'external_url',
@@ -2623,35 +2630,29 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             }
         }
 
-        // Handle calculated fields (these take priority over raw CSV values)
         if ($quantity !== null)     $updateData['quantity']     = $quantity;
         if ($price !== null)        $updateData['price']        = $price;
         if ($discount !== null)     $updateData['discount']     = $discount;
         if ($stock_status !== null) $updateData['stock_status'] = $stock_status;
 
-        // Sale price priority: calculated > explicit CSV value > derive from price+discount
         if ($sale_price !== null) {
             $updateData['sale_price'] = $sale_price;
         } elseif (array_key_exists('sale_price', $row) && !empty($row['sale_price'])) {
             $updateData['sale_price'] = $row['sale_price'];
         } elseif (isset($updateData['price']) && isset($updateData['discount']) && $updateData['discount'] > 0) {
             $updateData['sale_price'] = round(
-                $updateData['price'] - (($updateData['price'] * $updateData['discount']) / 100),
-                2
+                $updateData['price'] - (($updateData['price'] * $updateData['discount']) / 100), 2
             );
         }
 
-        // Store ID (vendor context only)
         if ($store_id !== null) {
             $updateData['store_id'] = $store_id;
         }
 
-        // Only update is_approved if explicitly provided in CSV — never reset it automatically
         if (array_key_exists('is_approved', $row)) {
             $updateData['is_approved'] = $row['is_approved'];
         }
 
-        // Handle external_details JSON
         if (array_key_exists('external_details', $row)) {
             $updateData['external_details'] = is_string($row['external_details'])
                 ? json_decode($row['external_details'], true)
@@ -2663,7 +2664,7 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
 
     private function createProduct($row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status)
     {
-        $productData = [
+        return Product::create([
             'name'                       => $row['name'] ?? 'Untitled Product',
             'product_type'               => $row['product_type'] ?? 'physical',
             'short_description'          => $row['short_description'] ?? null,
@@ -2714,9 +2715,7 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
                                                 ? json_decode($row['external_details'], true)
                                                 : ($row['external_details'] ?? null),
             'publication_id'             => $row['publication_id'] ?? null,
-        ];
-
-        return Product::create($productData);
+        ]);
     }
 
     private function setTranslations($product, $row)
@@ -2724,13 +2723,10 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
         $locale = app()->getLocale();
 
         foreach ($row as $key => $value) {
-            // Only process translatable fields that are present and non-empty
             if ($product->isTranslatableAttribute($key) && !empty($value)) {
                 $translations = is_array($value) ? $value : [$locale => $value];
-
-                // MERGE with existing translations — never wipe other locales
-                $existing = $product->getTranslations($key);
-                $merged   = array_merge($existing, $translations);
+                $existing     = $product->getTranslations($key);
+                $merged       = array_merge($existing, $translations);
                 $product->setTranslations($key, $merged);
             }
         }
@@ -2752,7 +2748,6 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
                 ];
 
                 if (in_array(head($separatedKeys), $this->translateFields)) {
-                    // Group locale-suffixed fields: name_en, name_ar → name['en'], name['ar']
                     $rows[head($separatedKeys)][last($separatedKeys)] = $value;
                 } else {
                     $rows[$key] = $value;
@@ -2762,12 +2757,13 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             }
         }
 
-        // Remove null and empty string values
-        $filteredRow = array_filter($rows, function ($value) {
-            return !is_null($value) && $value !== '';
-        });
+        // Strip read-only / non-model columns
+        foreach (['id', 'created_at', 'updated_at', 'deleted_at', 'is_digital', 'license_key'] as $col) {
+            unset($rows[$col]);
+        }
 
-        // Convert string booleans to actual booleans
+        $filteredRow = array_filter($rows, fn($value) => !is_null($value) && $value !== '');
+
         $booleanFields = [
             'show_stock_quantity', 'is_featured', 'secure_checkout', 'safe_checkout',
             'social_share', 'encourage_order', 'encourage_view', 'is_cod', 'is_return',
@@ -2782,9 +2778,7 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             }
         }
 
-        // Convert numeric fields
-        $numericFields = ['price', 'quantity', 'discount', 'weight', 'shipping_days', 'sale_price'];
-        foreach ($numericFields as $field) {
+        foreach (['price', 'quantity', 'discount', 'weight', 'shipping_days', 'sale_price'] as $field) {
             if (isset($filteredRow[$field])) {
                 $filteredRow[$field] = is_numeric($filteredRow[$field])
                     ? (float) $filteredRow[$field]
@@ -2792,30 +2786,46 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             }
         }
 
+        // Fix external_details JSON double-quote escaping from CSV
+        if (isset($filteredRow['external_details']) && is_string($filteredRow['external_details'])) {
+            $decoded = json_decode($filteredRow['external_details'], true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $decoded = json_decode(str_replace('""', '"', $filteredRow['external_details']), true);
+            }
+            $filteredRow['external_details'] = json_last_error() === JSON_ERROR_NONE ? $decoded : null;
+        }
+
         return $filteredRow;
     }
+
+    // ─── MEDIA: local = extract ID, external = download ───────────────────────
 
     private function handleMediaFiles($product, $row)
     {
         try {
-            if (isset($row['product_thumbnail_url']) && !empty($row['product_thumbnail_url'])) {
-                $this->handleSingleMediaFile($product, $row['product_thumbnail_url'], 'product_thumbnail_id', $row);
+            $mediaMap = [
+                'product_thumbnail_url'  => 'product_thumbnail_id',
+                'product_meta_image_url' => 'product_meta_image_id',
+                'size_chart_image_url'   => 'size_chart_image_id',
+                'preview_audio_file_url' => 'preview_audio_file_id',
+                'preview_video_file_url' => 'preview_video_file_id',
+                'watermark_image_url'    => 'watermark_image_id',
+            ];
+
+            foreach ($mediaMap as $urlField => $idField) {
+                $url = $row[$urlField] ?? null;
+                if (empty($url)) continue;
+
+                $localId = $this->extractMediaId($url);
+                if ($localId) {
+                    $product->$idField = $localId;  // ← No HTTP, just assign ID
+                } else {
+                    $this->handleSingleMediaFile($product, $url, $idField,
+                        $urlField === 'product_thumbnail_url' ? $row : null
+                    );
+                }
             }
-            if (isset($row['product_meta_image_url']) && !empty($row['product_meta_image_url'])) {
-                $this->handleSingleMediaFile($product, $row['product_meta_image_url'], 'product_meta_image_id');
-            }
-            if (isset($row['size_chart_image_url']) && !empty($row['size_chart_image_url'])) {
-                $this->handleSingleMediaFile($product, $row['size_chart_image_url'], 'size_chart_image_id');
-            }
-            if (isset($row['preview_audio_file_url']) && !empty($row['preview_audio_file_url'])) {
-                $this->handleSingleMediaFile($product, $row['preview_audio_file_url'], 'preview_audio_file_id');
-            }
-            if (isset($row['preview_video_file_url']) && !empty($row['preview_video_file_url'])) {
-                $this->handleSingleMediaFile($product, $row['preview_video_file_url'], 'preview_video_file_id');
-            }
-            if (isset($row['watermark_image_url']) && !empty($row['watermark_image_url'])) {
-                $this->handleSingleMediaFile($product, $row['watermark_image_url'], 'watermark_image_id');
-            }
+
             $product->save();
         } catch (Exception $e) {
             \Log::error('Media file handling error: ' . $e->getMessage());
@@ -2847,13 +2857,12 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             try {
                 $watermarkMedia = $product->addMediaFromUrl($row['watermark_image_url'])->toMediaCollection('attachment');
                 $watermarkMedia->save();
-                $product->watermark_image_id = $watermarkMedia->id;
-
-                $watermark_id = $product->watermark_image_id;
-                $file_id      = $product->product_thumbnail_id;
-                $position     = $row['watermark_position'];
-
-                $product->product_thumbnail_id = Helpers::createWatermarkImage($watermark_id, $file_id, $position);
+                $product->watermark_image_id   = $watermarkMedia->id;
+                $product->product_thumbnail_id = Helpers::createWatermarkImage(
+                    $product->watermark_image_id,
+                    $product->product_thumbnail_id,
+                    $row['watermark_position']
+                );
                 $product->watermark_image()->associate($product->product_thumbnail_id);
             } catch (Exception $e) {
                 \Log::error('Watermark application error: ' . $e->getMessage());
@@ -2870,32 +2879,33 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             $this->handleDigitalFiles($product, $row, $existingProduct);
         }
         if (isset($row['categories']) && !empty($row['categories'])) {
-            $categoryIds = explode(',', $row['categories']);
-            $existingProduct ? $product->categories()->sync($categoryIds) : $product->categories()->attach($categoryIds);
+            $ids = explode(',', $row['categories']);
+            $existingProduct ? $product->categories()->sync($ids) : $product->categories()->attach($ids);
         }
         if (isset($row['tags']) && !empty($row['tags'])) {
-            $tagIds = explode(',', $row['tags']);
-            $existingProduct ? $product->tags()->sync($tagIds) : $product->tags()->attach($tagIds);
+            $ids = explode(',', $row['tags']);
+            $existingProduct ? $product->tags()->sync($ids) : $product->tags()->attach($ids);
         }
         if (isset($row['attributes']) && !empty($row['attributes'])) {
-            $attributeIds = explode(',', $row['attributes']);
-            $existingProduct ? $product->attributes()->sync($attributeIds) : $product->attributes()->attach($attributeIds);
+            $ids = explode(',', $row['attributes']);
+            $existingProduct ? $product->attributes()->sync($ids) : $product->attributes()->attach($ids);
         }
         if (isset($row['authors_id']) && !empty($row['authors_id'])) {
-            $authorIds = is_array($row['authors_id']) ? $row['authors_id'] : explode(',', $row['authors_id']);
-            $existingProduct ? $product->authors()->sync($authorIds) : $product->authors()->attach($authorIds);
+            $ids = is_array($row['authors_id']) ? $row['authors_id'] : explode(',', $row['authors_id']);
+            $existingProduct ? $product->authors()->sync($ids) : $product->authors()->attach($ids);
         }
     }
 
     private function handleGalleries($product, $row, $existingProduct)
     {
         try {
-            $galleryUrls = explode(',', $row['product_galleries_url']);
-            $galleryIds  = [];
-
-            foreach ($galleryUrls as $url) {
-                $url = trim($url);
-                if (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
+            $galleryIds = [];
+            foreach (explode(',', $row['product_galleries_url']) as $url) {
+                $url     = trim($url);
+                $localId = $this->extractMediaId($url);
+                if ($localId) {
+                    $galleryIds[] = $localId;
+                } elseif (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
                     $media        = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
                     $media->save();
                     $galleryIds[] = $media->id;
@@ -2914,12 +2924,13 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     private function handleDigitalFiles($product, $row, $existingProduct)
     {
         try {
-            $digitalFileUrls = explode(',', $row['digital_files_url']);
-            $digitalFileIds  = [];
-
-            foreach ($digitalFileUrls as $url) {
-                $url = trim($url);
-                if (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
+            $digitalFileIds = [];
+            foreach (explode(',', $row['digital_files_url']) as $url) {
+                $url     = trim($url);
+                $localId = $this->extractMediaId($url);
+                if ($localId) {
+                    $digitalFileIds[] = $localId;
+                } elseif (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
                     $media            = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
                     $media->save();
                     $digitalFileIds[] = $media->id;
@@ -2939,9 +2950,7 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     {
         $variations = json_decode($row['variations']);
         if (is_array($variations)) {
-            if ($existingProduct) {
-                $product->variations()->delete();
-            }
+            if ($existingProduct) $product->variations()->delete();
             foreach ($variations as $variation) {
                 $this->createProductVariation($product, $variation);
             }
@@ -2970,13 +2979,9 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
         $wholesaleIds = [];
         if (is_array($wholesalePrices)) {
             foreach ($wholesalePrices as $wholesalePrice) {
-                $wholesale = $product->wholesales()->updateOrCreate(
+                $wholesale      = $product->wholesales()->updateOrCreate(
                     ['id' => $wholesalePrice['id'] ?? null],
-                    [
-                        'min_qty' => $wholesalePrice['min_qty'],
-                        'max_qty' => $wholesalePrice['max_qty'],
-                        'value'   => $wholesalePrice['value'],
-                    ]
+                    ['min_qty' => $wholesalePrice['min_qty'], 'max_qty' => $wholesalePrice['max_qty'], 'value' => $wholesalePrice['value']]
                 );
                 $wholesaleIds[] = $wholesale?->id;
             }
@@ -2990,40 +2995,29 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
         $licenseKeyIds = [];
         if (is_array($license_keys)) {
             foreach ($license_keys as $license_key) {
-                $licenseKey = $product->license_keys()->updateOrCreate(
+                $licenseKey      = $product->license_keys()->updateOrCreate(
                     ['license_key' => $license_key],
-                    [
-                        'license_key'  => $this->getUniqueLicenseKey($license_key),
-                        'variation_id' => $variation_id,
-                        'status'       => 1,
-                    ]
+                    ['license_key' => $this->getUniqueLicenseKey($license_key), 'variation_id' => $variation_id, 'status' => 1]
                 );
                 $licenseKeyIds[] = $licenseKey?->id;
             }
-            $product->license_keys()
-                ->whereNotIn('id', $licenseKeyIds)
-                ->where('variation_id', $variation_id)
-                ?->delete();
+            $product->license_keys()->whereNotIn('id', $licenseKeyIds)->where('variation_id', $variation_id)?->delete();
             return $product;
         }
     }
 
     public function getUniqueLicenseKey($license_key)
     {
-        $i           = 1;
-        $originalKey = $license_key;
-        do {
-            $license_key = $originalKey . str_repeat(' (COPY)', $i++);
-        } while (LicenseKey::where('license_key', $license_key)->whereNull('deleted_at')->exists());
+        $i = 1; $originalKey = $license_key;
+        do { $license_key = $originalKey . str_repeat(' (COPY)', $i++); }
+        while (LicenseKey::where('license_key', $license_key)->whereNull('deleted_at')->exists());
         return $license_key;
     }
 
     public function createProductVariation($product, $variation)
     {
         $stock_status = StockStatus::OUT_OF_STOCK;
-        if (isset($variation->quantity) && $variation->quantity > 0) {
-            $stock_status = StockStatus::IN_STOCK;
-        }
+        if (isset($variation->quantity) && $variation->quantity > 0) $stock_status = StockStatus::IN_STOCK;
 
         $sale_price = null;
         if (isset($variation->discount) && $variation->discount > 0) {
@@ -3031,14 +3025,11 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
         }
 
         $currentLocale = app()->getLocale();
-        $variationName = 'Default Variation';
-        if (isset($variation->{'name' . $currentLocale})) {
-            $variationName = $variation->{'name' . $currentLocale};
-        } elseif (isset($variation->name)) {
-            $variationName = $variation->name;
-        }
+        $variationName = isset($variation->{'name' . $currentLocale})
+            ? $variation->{'name' . $currentLocale}
+            : ($variation->name ?? 'Default Variation');
 
-        $variationData = [
+        $productVariation = $product->variations()->create([
             'name'         => $variationName,
             'price'        => $variation->price ?? 0,
             'sale_price'   => $sale_price,
@@ -3048,31 +3039,41 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             'stock_status' => $stock_status,
             'status'       => $variation->status ?? 1,
             'is_default'   => $variation->is_default ?? 0,
-        ];
-
-        $productVariation = $product->variations()->create($variationData);
+        ]);
 
         try {
             if (isset($variation->attribute_values) && !empty($variation->attribute_values)) {
                 $productVariation->attribute_values()->attach(explode(',', $variation->attribute_values));
             }
+
             if (isset($variation->variation_image_url) && !empty($variation->variation_image_url)) {
-                $this->handleVariationMedia($product, $productVariation, $variation->variation_image_url, 'variation_image_id');
+                $localId = $this->extractMediaId($variation->variation_image_url);
+                if ($localId) {
+                    $productVariation->variation_image_id = $localId;
+                    $productVariation->save();
+                } else {
+                    $this->handleVariationMedia($product, $productVariation, $variation->variation_image_url, 'variation_image_id');
+                }
             }
+
             if (isset($variation->variation_galleries_url) && !empty($variation->variation_galleries_url)) {
                 $this->handleVariationGalleries($product, $productVariation, $variation->variation_galleries_url);
             }
             if (isset($variation->variation_digital_files_url) && !empty($variation->variation_digital_files_url)) {
                 $this->handleVariationDigitalFiles($product, $productVariation, $variation->variation_digital_files_url);
             }
+
             if (isset($variation->license_keys) && !empty($variation->license_keys)
                 && isset($variation->separator) && !empty($variation->separator)
                 && $product->product_type == 'digital'
                 && $product->is_licensable == 1
                 && $product->is_licensekey_auto == 0
             ) {
-                $license_keys = Helpers::explodeLicenseKeys($variation->separator, $variation->license_keys);
-                $this->updateOrCreateProductLicenseKeys($product, $license_keys, $productVariation->id);
+                $this->updateOrCreateProductLicenseKeys(
+                    $product,
+                    Helpers::explodeLicenseKeys($variation->separator, $variation->license_keys),
+                    $productVariation->id
+                );
             }
         } catch (Exception $e) {
             \Log::error('Variation media handling error: ' . $e->getMessage());
@@ -3098,20 +3099,19 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     private function handleVariationGalleries($product, $variation, $galleryUrls)
     {
         try {
-            $urls       = explode(',', $galleryUrls);
             $galleryIds = [];
-
-            foreach ($urls as $url) {
-                $url = trim($url);
-                if (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
+            foreach (explode(',', $galleryUrls) as $url) {
+                $url     = trim($url);
+                $localId = $this->extractMediaId($url);
+                if ($localId) {
+                    $galleryIds[] = $localId;
+                } elseif (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
                     $media        = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
                     $media->save();
                     $galleryIds[] = $media->id;
                 }
             }
-            if (!empty($galleryIds)) {
-                $variation->variation_galleries()->attach($galleryIds);
-            }
+            if (!empty($galleryIds)) $variation->variation_galleries()->attach($galleryIds);
         } catch (Exception $e) {
             \Log::error('Variation galleries handling error: ' . $e->getMessage());
         }
@@ -3120,20 +3120,19 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     private function handleVariationDigitalFiles($product, $variation, $digitalFileUrls)
     {
         try {
-            $urls           = explode(',', $digitalFileUrls);
             $digitalFileIds = [];
-
-            foreach ($urls as $url) {
-                $url = trim($url);
-                if (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
+            foreach (explode(',', $digitalFileUrls) as $url) {
+                $url     = trim($url);
+                $localId = $this->extractMediaId($url);
+                if ($localId) {
+                    $digitalFileIds[] = $localId;
+                } elseif (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
                     $media            = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
                     $media->save();
                     $digitalFileIds[] = $media->id;
                 }
             }
-            if (!empty($digitalFileIds)) {
-                $variation->variation_digital_files()->attach($digitalFileIds);
-            }
+            if (!empty($digitalFileIds)) $variation->variation_digital_files()->attach($digitalFileIds);
         } catch (Exception $e) {
             \Log::error('Variation digital files handling error: ' . $e->getMessage());
         }
@@ -3142,17 +3141,17 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     private function formatProductResponse($product)
     {
         return [
-            'id'          => $product->id,
-            'name'        => $product->name,
-            'sku'         => $product->sku,
-            'price'       => $product->price,
-            'sale_price'  => $product->sale_price,
-            'quantity'    => $product->quantity,
-            'stock_status'=> $product->stock_status,
-            'is_approved' => $product->is_approved,
-            'status'      => $product->status,
-            'created_at'  => $product->created_at,
-            'updated_at'  => $product->updated_at,
+            'id'           => $product->id,
+            'name'         => $product->name,
+            'sku'          => $product->sku,
+            'price'        => $product->price,
+            'sale_price'   => $product->sale_price,
+            'quantity'     => $product->quantity,
+            'stock_status' => $product->stock_status,
+            'is_approved'  => $product->is_approved,
+            'status'       => $product->status,
+            'created_at'   => $product->created_at,
+            'updated_at'   => $product->updated_at,
         ];
     }
 }
