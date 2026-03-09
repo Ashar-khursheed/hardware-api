@@ -501,15 +501,29 @@ public function import()
 {
     DB::beginTransaction();
     try {
+        // Store file to disk first — fixes PhpSpreadsheet "Invalid Spreadsheet" bug
+        $path = request()->file('products')->storeAs(
+            'temp', 
+            'import_' . time() . '.csv', 
+            'local'
+        );
 
         $productImport = new ProductImport();
-        Excel::import($productImport, request()->file('products'), null, \Maatwebsite\Excel\Excel::CSV); // ← sirf yeh line change ki
-        DB::commit();
+        
+        Excel::import(
+            $productImport,
+            storage_path('app/' . $path),  // absolute path
+            null,
+            \Maatwebsite\Excel\Excel::CSV
+        );
 
+        // Clean up temp file
+        \Storage::disk('local')->delete($path);
+
+        DB::commit();
         return $productImport->getImportedProducts();
 
     } catch (Exception $e) {
-
         DB::rollback();
         throw new ExceptionHandler($e->getMessage(), $e->getCode());
     }
