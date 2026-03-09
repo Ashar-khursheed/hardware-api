@@ -2382,11 +2382,21 @@ use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Concerns\WithCustomCsvSettings;
 
-class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError
+
+class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, WithCustomCsvSettings
 {
     private $products = [];
-
+ public function getCsvSettings(): array
+    {
+        return [
+            'delimiter'        => ',',
+            'enclosure'        => '"',
+            'escape_character' => '"',  // ← CSV double-quote escaping
+            'input_encoding'   => 'UTF-8',
+        ];
+    }
     // These fields are translatable — handled ONLY via setTranslations(), never via update()
     private $translateFields = [
         'name', 'short_description', 'description',

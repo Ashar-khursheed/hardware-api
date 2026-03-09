@@ -480,24 +480,40 @@ class ProductRepository extends BaseRepository
         }
     }
 
-    public function import()
-    {
-        DB::beginTransaction();
-        try {
+    // public function import()
+    // {
+    //     DB::beginTransaction();
+    //     try {
 
-            $productImport = new ProductImport();
-            Excel::import($productImport, request()->file('products'));
-            DB::commit();
+    //         $productImport = new ProductImport();
+    //         Excel::import($productImport, request()->file('products'));
+    //         DB::commit();
 
-            return $productImport->getImportedProducts();
+    //         return $productImport->getImportedProducts();
 
-        } catch (Exception $e) {
+    //     } catch (Exception $e) {
 
-            DB::rollback();
-            throw new ExceptionHandler($e->getMessage(), $e->getCode());
-        }
+    //         DB::rollback();
+    //         throw new ExceptionHandler($e->getMessage(), $e->getCode());
+    //     }
+    // }
+public function import()
+{
+    DB::beginTransaction();
+    try {
+
+        $productImport = new ProductImport();
+        Excel::import($productImport, request()->file('products'), null, \Maatwebsite\Excel\Excel::CSV); // ← sirf yeh line change ki
+        DB::commit();
+
+        return $productImport->getImportedProducts();
+
+    } catch (Exception $e) {
+
+        DB::rollback();
+        throw new ExceptionHandler($e->getMessage(), $e->getCode());
     }
-
+}
     public function getProductsExportUrl()
     {
         try {
