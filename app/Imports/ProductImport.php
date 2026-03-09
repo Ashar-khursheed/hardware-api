@@ -1465,7 +1465,909 @@
 //     }
 // }
 
+// namespace App\Imports;
+// use Exception;
+// use App\Enums\RoleEnum;
+// use App\Models\Product;
+// use App\Helpers\Helpers;
+// use App\Models\Variation;
+// use App\Enums\StockStatus;
+// use App\Models\LicenseKey;
+// use Illuminate\Support\Facades\DB;
+// use Maatwebsite\Excel\Concerns\ToModel;
+// use App\GraphQL\Exceptions\ExceptionHandler;
+// use Maatwebsite\Excel\Concerns\SkipsOnError;
+// use Maatwebsite\Excel\Concerns\WithHeadingRow;
+// use Maatwebsite\Excel\Concerns\WithValidation;
+// use Illuminate\Validation\Rule;
+// class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError
+// {
+//     private $products = [];
+//     private $translateFields = ['name','short_description','description','meta_title','meta_description','estimated_delivery_text','return_policy_text'];
+//     public function rules(): array
+//     {
+//         return [
+//             'name'  => ['nullable', 'string', 'max:255'],
+//             'product_type' =>  ['nullable','in:physical,digital,external'],
+//             'description' => ['nullable', 'string', 'min:10'],
+//             'short_description' => ['nullable'],
+//             'type' => ['nullable','in:simple,classified'],
+//             'price' => ['nullable', 'numeric'],
+//              'sale_price' => ['nullable', 'numeric'],
+//             'stock_status' => ['nullable', 'in:in_stock,out_of_stock'],
+//             'quantity' => ['nullable', 'numeric', 'min:0'],
+//             'sku' => ['nullable', 'string'],
+//             'discount' => ['nullable','numeric','regex:/^([0-9]{1,2}){1}(\.[0-9]{1,2})?$/'],
+//             'show_stock_quantity' => ['nullable', 'boolean'],
+//             'is_featured' => ['nullable', 'boolean'],
+//             'secure_checkout' => ['nullable', 'boolean'],
+//             'safe_checkout' => ['nullable', 'boolean'],
+//             'social_share' => ['nullable', 'boolean'],
+//             'encourage_order' => ['nullable', 'boolean'],
+//             'encourage_view' => ['nullable', 'boolean'],
+//             'is_cod' => ['nullable', 'boolean'],
+//             'is_return' => ['nullable', 'boolean'],
+//             'is_free_shipping' => ['nullable', 'boolean'],
+//             'is_changeable' => ['nullable', 'boolean'],
+//             'is_sale_enable' => ['nullable', 'boolean'],
+//             'is_external' => ['nullable', 'boolean'],
+//             'external_url' => ['nullable', 'url'],
+//             'watermark' => ['nullable', 'boolean'],
+//             'watermark_position' => ['nullable', 'string'],
+//             'is_licensable' => ['nullable', 'boolean'],
+//             'is_licensekey_auto' => ['nullable', 'boolean'],
+//             'sale_starts_at' => ['nullable', 'date'],
+//             'store_id' => ['nullable','exists:stores,id,deleted_at,NULL'],
+//             'brand_id' => ['nullable','exists:brands,id,deleted_at,NULL'],
+//             'sale_expired_at' => ['nullable','date', 'after_or_equal:sale_starts_at'],
+//             'separator' => ['nullable', 'in:new_line,double_new_line,comma,semicolon,pipe'],
+//             'status' => ['nullable', 'boolean'],
+//             'visible_time' => ['nullable','date'],
+//             'variations' => ['nullable', 'json'],
+//             // Image URL validations
+//             'product_thumbnail_url' => ['nullable', 'url'],
+//             'product_meta_image_url' => ['nullable', 'url'],
+//             'size_chart_image_url' => ['nullable', 'url'],
+//             'preview_audio_file_url' => ['nullable', 'url'],
+//             'preview_video_file_url' => ['nullable', 'url'],
+//             'product_galleries_url' => ['nullable', 'string'],
+//             'digital_files_url' => ['nullable', 'string'],
+//             'watermark_image_url' => ['nullable', 'url'],
+//         ];
+//     }
+//     public function customValidationMessages()
+//     {
+//         return [
+//             'name.required' => ('validation.name_Required'),
+//             'name.string' => ('validation.name_in_string'),
+//             'name.max' => ('validation.name_not_exceed'),
+//             'name.unique' => ('validation.name_already_taken'),
+//             'external_url.url' => ('validation.external_url_must_be_valid'),
+//             'product_thumbnail_url.url' => ('validation.product_thumbnail_url_must_be_valid'),
+//             'product_meta_image_url.url' => __('validation.product_meta_image_url_must_be_valid'),
+//             // Add more custom messages as needed
+//         ];
+//     }
+//     public function onError(\Throwable $e)
+//     {
+//         throw new ExceptionHandler($e->getMessage() , 422);
+//     }
+//     public function getImportedProducts()
+//     {
+//         return $this->products;
+//     }
+//     public function getMinPriceVariation($request, $price)
+//     {
+//         return head(array_filter(json_decode($request['variations']), function ($variation) use ($price) {
+//             return $variation->price == $price;
+//         }));
+//     }
+//     // public function model(array $row)
+//     // {
+//     //     DB::beginTransaction();
+//     //     try {
+//     //         $store_id = null;
+//     //         $roleName = Helpers::getCurrentRoleName();
+//     //         $isAutoApprove = true; // Default value
+
+//     //         if ($roleName != RoleEnum::ADMIN) {
+//     //             $settings = Helpers::getSettings();
+//     //             if ($roleName == RoleEnum::VENDOR) {
+//     //                 if (!Helpers::isMultiVendorEnable()) {
+//     //                     throw new Exception(__('auth.multi_vendor_deactivated'), 403);
+//     //                 }
+//     //                 $store_id = Helpers::getCurrentVendorStoreId();
+//     //             }
+//     //             $isAutoApprove = $settings['activation']['product_auto_approve'] ?? true;
+//     //         }
+//     //         // Check if product exists by SKU for update
+//     //         $existingProduct = null;
+//     //         if (isset($row['sku']) && !empty($row['sku'])) {
+//     //             $existingProduct = Product::where('sku', $row['sku'])
+//     //                 ->whereNull('deleted_at')
+//     //                 ->first();
+//     //         }
+//     //         // Calculate variation-based pricing
+//     //         $price = null;
+//     //         $sale_price = null;
+//     //         $discount = null;
+//     //         $quantity = null;
+//     //         $stock_status = null;
+//     //         if(isset($row['variations']) && !empty($row['variations']) && isset($row['type']) && $row['type'] == 'classified') {
+//     //             $variations = json_decode($row['variations']);
+//     //             if (is_array($variations) && count($variations)) {
+//     //                 $price = min(array_column($variations, 'price'));
+//     //                 $minPriceVariation = $this->getMinPriceVariation($row, $price);
+//     //                 $discount = $minPriceVariation->discount ?? 0;
+//     //                 $sale_price = round($price - (($price * $discount)/100), 2);
+//     //                 $quantity = max(array_column($variations, 'quantity'));
+//     //                 $stock_status = $quantity > 0 ? StockStatus::IN_STOCK : StockStatus::OUT_OF_STOCK;
+//     //             }
+//     //         }
+//     //         // Handle simple product stock status
+//     //         if (isset($row['quantity']) && !is_null($row['quantity'])) {
+//     //             $stock_status = $row['quantity'] > 0 ? StockStatus::IN_STOCK : StockStatus::OUT_OF_STOCK;
+//     //         }
+//     //         // Calculate sale price from discount
+//     //         if (isset($row['discount']) && !is_null($row['discount']) && $row['discount'] > 0) {
+//     //             $mrpPrice = $row['price'] ?? $price ?? 0;
+//     //             $sale_price = round($mrpPrice - (($mrpPrice * $row['discount'])/100), 2);
+//     //         }
+
+//     //         $row = $this->filterRow($row);
+
+//     //         // Update existing product or create new one
+//     //         if ($existingProduct) {
+//     //             $product = $existingProduct;
+//     //             $this->updateProduct($product, $row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status);
+//     //         } else {
+//     //             $product = $this->createProduct($row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status);
+//     //         }
+//     //         $this->setTranslations($product, $row);
+//     //         // Handle media files with error handling
+//     //         $this->handleMediaFiles($product, $row);
+//     //         // Handle relationships
+//     //         $this->handleRelationships($product, $row, $existingProduct);
+//     //         // Handle variations
+//     //         if (isset($row['variations']) && !is_null($row['variations']) && isset($row['type']) && $row['type'] == 'classified'){
+//     //             $this->handleVariations($product, $row, $existingProduct);
+//     //         }
+//     //         // Handle license keys
+//     //         if ($this->shouldHandleLicenseKeys($product, $row)) {
+//     //             $license_keys = Helpers::explodeLicenseKeys($row['separator'], $row['license_keys']);
+//     //             $this->updateOrCreateProductLicenseKeys($product, $license_keys);
+//     //         }
+//     //         // Handle wholesale prices
+//     //         if (isset($row['wholesale_prices'])) {
+//     //             $this->updateOrCreateWholesaleProduct($product, $row['wholesale_prices']);
+//     //         }
+//     //         $this->products[] = $this->formatProductResponse($product);
+//     //         DB::commit();
+//     //         return $product;
+//     //     } catch (Exception $e) {
+//     //         DB::rollback();
+//     //         throw new ExceptionHandler($e->getMessage(), $e->getCode());
+//     //     }
+//     // }
+//     public function model(array $row)
+// {
+//     DB::beginTransaction();
+//     try {
+//         // Filter and clean the row data FIRST
+//         $row = $this->filterRow($row);
+        
+//         $store_id = null;
+//         $roleName = Helpers::getCurrentRoleName();
+//         $isAutoApprove = true; // Default value
+
+//         if ($roleName != RoleEnum::ADMIN) {
+//             $settings = Helpers::getSettings();
+//             if ($roleName == RoleEnum::VENDOR) {
+//                 if (!Helpers::isMultiVendorEnable()) {
+//                     throw new Exception(__('auth.multi_vendor_deactivated'), 403);
+//                 }
+//                 $store_id = Helpers::getCurrentVendorStoreId();
+//             }
+//             $isAutoApprove = $settings['activation']['product_auto_approve'] ?? true;
+//         }
+
+//         // Check if product exists by SKU for update
+//         $existingProduct = null;
+//         if (isset($row['sku']) && !empty($row['sku'])) {
+//             $existingProduct = Product::where('sku', $row['sku'])
+//                 ->whereNull('deleted_at')
+//                 ->first();
+//         }
+
+//         // Calculate variation-based pricing
+//         $price = null;
+//         $sale_price = null;
+//         $discount = null;
+//         $quantity = null;
+//         $stock_status = null;
+        
+//          if (isset($row['sale_price']) && !empty($row['sale_price'])) {
+//             $sale_price = (float) $row['sale_price'];
+//         }
+
+//         if(isset($row['variations']) && !empty($row['variations']) && isset($row['type']) && $row['type'] == 'classified') {
+//             $variations = json_decode($row['variations']);
+//             if (is_array($variations) && count($variations)) {
+//                 $price = min(array_column($variations, 'price'));
+//                 $minPriceVariation = $this->getMinPriceVariation($row, $price);
+//                 $discount = $minPriceVariation->discount ?? 0;
+//                 $sale_price = round($price - (($price * $discount)/100), 2);
+//                 $quantity = max(array_column($variations, 'quantity'));
+//                 $stock_status = $quantity > 0 ? StockStatus::IN_STOCK : StockStatus::OUT_OF_STOCK;
+//             }
+//         }
+
+//         // Handle simple product stock status
+//         if (isset($row['quantity']) && !is_null($row['quantity'])) {
+//             $stock_status = $row['quantity'] > 0 ? StockStatus::IN_STOCK : StockStatus::OUT_OF_STOCK;
+//         }
+
+//         // Calculate sale price from discount
+//         // if (isset($row['discount']) && !is_null($row['discount']) && $row['discount'] > 0) {
+//         //     $mrpPrice = $row['price'] ?? $price ?? 0;
+//         //     $sale_price = round($mrpPrice - (($mrpPrice * $row['discount'])/100), 2);
+//         // }
+        
+//          if ($sale_price === null && isset($row['discount']) && !is_null($row['discount']) && $row['discount'] > 0) {
+//             $mrpPrice = $row['price'] ?? $price ?? 0;
+//             $sale_price = round($mrpPrice - (($mrpPrice * $row['discount'])/100), 2);
+//         }
+
+//         // Update existing product or create new one
+//         if ($existingProduct) {
+//             $product = $existingProduct;
+//             $this->updateProduct($product, $row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status);
+//         } else {
+//             $product = $this->createProduct($row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status);
+//         }
+
+//         $this->setTranslations($product, $row);
+
+//         // Handle media files with error handling
+//         $this->handleMediaFiles($product, $row);
+
+//         // Handle relationships
+//         $this->handleRelationships($product, $row, $existingProduct);
+
+//         // Handle variations
+//         if (isset($row['variations']) && !is_null($row['variations']) && isset($row['type']) && $row['type'] == 'classified'){
+//             $this->handleVariations($product, $row, $existingProduct);
+//         }
+
+//         // Handle license keys
+//         if ($this->shouldHandleLicenseKeys($product, $row)) {
+//             $license_keys = Helpers::explodeLicenseKeys($row['separator'], $row['license_keys']);
+//             $this->updateOrCreateProductLicenseKeys($product, $license_keys);
+//         }
+
+//         // Handle wholesale prices
+//         if (isset($row['wholesale_prices'])) {
+//             $this->updateOrCreateWholesaleProduct($product, $row['wholesale_prices']);
+//         }
+
+//         $this->products[] = $this->formatProductResponse($product);
+//         DB::commit();
+//         return $product;
+//     } catch (Exception $e) {
+//         DB::rollback();
+//         throw new ExceptionHandler($e->getMessage(), $e->getCode());
+//     }
+// }
+//     private function updateProduct($product, $row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status)
+//     {
+//         $updateData = [];
+
+//         // Only update fields that are present in the row
+//       $fieldsToUpdate = [
+//                 'name', 'product_type', 'short_description', 'description', 'type', 'unit',
+//                 'weight', 'meta_title', 'meta_description', 'is_free_shipping', 'is_external',
+//                 'external_button_text', 'external_url', 'is_featured', 'is_return', 'is_trending',
+//                 'is_sale_enable', 'is_random_related_products', 'sale_starts_at', 'sale_expired_at',
+//                 'shipping_days', 'show_stock_quantity', 'estimated_delivery_text', 'return_policy_text',
+//                 'safe_checkout', 'secure_checkout', 'social_share', 'encourage_order', 'encourage_view',
+//                 'status', 'is_licensable', 'preview_url', 'watermark', 'watermark_position',
+//                 'wholesale_price_type', 'separator', 'preview_type', 'is_licensekey_auto',
+//                 'external_details', 'publication_id', 'price', 'discount', 'sale_price'  // Add these
+//             ];
+//         foreach ($fieldsToUpdate as $field) {
+//             if (array_key_exists($field, $row)) {
+//                 $updateData[$field] = $row[$field];
+//             }
+//         }
+//         // Handle calculated fields
+//         if ($quantity !== null) $updateData['quantity'] = $quantity;
+//         if ($price !== null) $updateData['price'] = $price;
+//         // if ($sale_price !== null) $updateData['sale_price'] = $sale_price;
+//         if ($discount !== null) $updateData['discount'] = $discount;
+//         if ($stock_status !== null) $updateData['stock_status'] = $stock_status;
+        
+//         if ($sale_price !== null) {
+//         $updateData['sale_price'] = $sale_price;
+//             } elseif (array_key_exists('sale_price', $row) && !empty($row['sale_price'])) {
+//                 $updateData['sale_price'] = $row['sale_price'];
+//             } elseif (isset($updateData['price']) && isset($updateData['discount']) && $updateData['discount'] > 0) {
+//                 // Calculate sale_price if we have price and discount
+//                 $updateData['sale_price'] = round($updateData['price'] - (($updateData['price'] * $updateData['discount']) / 100), 2);
+//             }
+//         // Handle special fields
+//         if ($store_id !== null) $updateData['store_id'] = $store_id;
+//         if (array_key_exists('is_approved', $row)) {
+//             $updateData['is_approved'] = $row['is_approved'];
+//         } else {
+//             $updateData['is_approved'] = $isAutoApprove;
+//         }
+//         // Handle external_details JSON
+//         if (array_key_exists('external_details', $row)) {
+//             $updateData['external_details'] = is_string($row['external_details']) 
+//                 ? json_decode($row['external_details'], true) 
+//                 : $row['external_details'];
+//         }
+//         $product->update($updateData);
+//     }
+//     private function createProduct($row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status)
+//     {
+//         $productData = [
+//             'name' => $row['name'] ?? 'Untitled Product',
+//             'product_type' => $row['product_type'] ?? 'physical',
+//             'short_description' => $row['short_description'] ?? null,
+//             'description' => $row['description'] ?? 'No description provided',
+//             'type' => $row['type'] ?? 'simple',
+//             'unit' => $row['unit'] ?? null,
+//             'quantity' => $quantity ?? $row['quantity'] ?? 0,
+//             'weight' => $row['weight'] ?? null,
+//             'price' => $price ?? $row['price'] ?? 0,
+//             'sale_price' => $sale_price ?? $row['sale_price'] ?? null,
+//             'discount' => $discount ?? $row['discount'] ?? 0,
+//             'sku' => $row['sku'] ?? 'SKU-' . uniqid(),
+//             'stock_status' => $stock_status ?? $row['stock_status'] ?? 'out_of_stock',
+//             'meta_title' => $row['meta_title'] ?? null,
+//             'meta_description' => $row['meta_description'] ?? null,
+//             'store_id' => $store_id ?? $row['store_id'] ?? null,
+//             'is_free_shipping' => $row['is_free_shipping'] ?? 0,
+//             'is_external' => $row['is_external'] ?? 0,
+//             'external_button_text' => $row['external_button_text'] ?? null,
+//             'external_url'=> $row['external_url'] ?? null,
+//             'is_featured' => $row['is_featured'] ?? 0,
+//             'is_return' => $row['is_return'] ?? 0,
+//             'is_trending' => $row['is_trending'] ?? 0,
+//             'is_sale_enable' => $row['is_sale_enable'] ?? 0,
+//             'is_random_related_products' => $row['is_random_related_products'] ?? 0,
+//             'sale_starts_at' => $row['sale_starts_at'] ?? null,
+//             'sale_expired_at' => $row['sale_expired_at'] ?? null,
+//             'shipping_days' => $row['shipping_days'] ?? null,
+//             'show_stock_quantity' => $row['show_stock_quantity'] ?? 0,
+//             'estimated_delivery_text' => $row['estimated_delivery_text'] ?? null,
+//             'return_policy_text' => $row['return_policy_text'] ?? null,
+//             'safe_checkout' => $row['safe_checkout'] ?? 0,
+//             'secure_checkout' => $row['secure_checkout'] ?? 0,
+//             'social_share' => $row['social_share'] ?? 0,
+//             'encourage_order' => $row['encourage_order'] ?? 0,
+//             'encourage_view' => $row['encourage_view'] ?? 0,
+//             'is_approved' => $row['is_approved'] ?? $isAutoApprove,
+//             'status' => $row['status'] ?? 1,
+//             'is_licensable' => $row['is_licensable'] ?? 0,
+//             'preview_url' => $row['preview_url'] ?? null,
+//             'watermark' => $row['watermark'] ?? 0,
+//             'watermark_position' => $row['watermark_position'] ?? null,
+//             'wholesale_price_type' => $row['wholesale_price_type'] ?? null,
+//             'separator' => $row['separator'] ?? null,
+//             'preview_type' => $row['preview_type'] ?? null,
+//             'is_licensekey_auto' => $row['is_licensekey_auto'] ?? 0,
+//             'external_details' => is_string($row['external_details'] ?? null)
+//                 ? json_decode($row['external_details'], true)
+//                 : ($row['external_details'] ?? null),
+//             'publication_id' => $row['publication_id'] ?? null,
+//         ];
+//         return Product::create($productData);
+//     }
+//     private function handleMediaFiles($product, $row)
+//     {
+//         try {
+//             // Handle product thumbnail
+//             if (isset($row['product_thumbnail_url']) && !empty($row['product_thumbnail_url'])) {
+//                 $this->handleSingleMediaFile($product, $row['product_thumbnail_url'], 'product_thumbnail_id', $row);
+//             }
+//             // Handle product meta image
+//             if (isset($row['product_meta_image_url']) && !empty($row['product_meta_image_url'])) {
+//                 $this->handleSingleMediaFile($product, $row['product_meta_image_url'], 'product_meta_image_id');
+//             }
+//             // Handle size chart image
+//             if (isset($row['size_chart_image_url']) && !empty($row['size_chart_image_url'])) {
+//                 $this->handleSingleMediaFile($product, $row['size_chart_image_url'], 'size_chart_image_id');
+//             }
+//             // Handle preview audio file
+//             if (isset($row['preview_audio_file_url']) && !empty($row['preview_audio_file_url'])) {
+//                 $this->handleSingleMediaFile($product, $row['preview_audio_file_url'], 'preview_audio_file_id');
+//             }
+//             // Handle preview video file
+//             if (isset($row['preview_video_file_url']) && !empty($row['preview_video_file_url'])) {
+//                 $this->handleSingleMediaFile($product, $row['preview_video_file_url'], 'preview_video_file_id');
+//             }
+//             // Handle watermark image
+//             if (isset($row['watermark_image_url']) && !empty($row['watermark_image_url'])) {
+//                 $this->handleSingleMediaFile($product, $row['watermark_image_url'], 'watermark_image_id');
+//             }
+//             $product->save();
+//         } catch (Exception $e) {
+//             // Log the error but don't stop the import
+//             \Log::error('Media file handling error: ' . $e->getMessage());
+//         }
+//     }
+//     private function handleSingleMediaFile($product, $url, $fieldName, $row = null)
+//     {
+//         try {
+//             if (!filter_var($url, FILTER_VALIDATE_URL)) {
+//                 throw new Exception("Invalid URL: $url");
+//             }
+//             $media = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
+//             $media->save();
+//             $product->$fieldName = $media->id;
+//             // Handle watermark for thumbnail
+//             if ($fieldName === 'product_thumbnail_id' && isset($row['watermark']) && $row['watermark']) {
+//                 $this->applyWatermark($product, $row);
+//             }
+//         } catch (Exception $e) {
+//             \Log::error("Failed to handle media file $url: " . $e->getMessage());
+//             throw $e;
+//         }
+//     }
+//     private function applyWatermark($product, $row)
+//     {
+//         if (isset($row['watermark_position']) && isset($row['watermark_image_url'])) {
+//             try {
+//                 $watermarkMedia = $product->addMediaFromUrl($row['watermark_image_url'])->toMediaCollection('attachment');
+//                 $watermarkMedia->save();
+//                 $product->watermark_image_id = $watermarkMedia->id;
+
+//                 $watermark_id = $product->watermark_image_id;
+//                 $file_id = $product->product_thumbnail_id;
+//                 $position = $row['watermark_position'];
+
+//                 $product->product_thumbnail_id = Helpers::createWatermarkImage($watermark_id, $file_id, $position);
+//                 $product->watermark_image()->associate($product->product_thumbnail_id);
+//             } catch (Exception $e) {
+//                 \Log::error('Watermark application error: ' . $e->getMessage());
+//             }
+//         }
+//     }
+//     private function handleRelationships($product, $row, $existingProduct)
+//     {
+//         // Handle galleries
+//         if (isset($row['product_galleries_url']) && !empty($row['product_galleries_url'])) {
+//             $this->handleGalleries($product, $row, $existingProduct);
+//         }
+//         // Handle digital files
+//         if (isset($row['digital_files_url']) && !empty($row['digital_files_url'])) {
+//             $this->handleDigitalFiles($product, $row, $existingProduct);
+//         }
+//         // Handle categories
+//         if (isset($row['categories']) && !empty($row['categories'])) {
+//             $categoryIds = explode(',', $row['categories']);
+//             if ($existingProduct) {
+//                 $product->categories()->sync($categoryIds);
+//             } else {
+//                 $product->categories()->attach($categoryIds);
+//             }
+//         }
+//         // Handle tags
+//         if (isset($row['tags']) && !empty($row['tags'])) {
+//             $tagIds = explode(',', $row['tags']);
+//             if ($existingProduct) {
+//                 $product->tags()->sync($tagIds);
+//             } else {
+//                 $product->tags()->attach($tagIds);
+//             }
+//         }
+//         // Handle attributes
+//         if (isset($row['attributes']) && !empty($row['attributes'])) {
+//             $attributeIds = explode(',', $row['attributes']);
+//             if ($existingProduct) {
+//                 $product->attributes()->sync($attributeIds);
+//             } else {
+//                 $product->attributes()->attach($attributeIds);
+//             }
+//         }
+//         // Handle authors
+//         if (isset($row['authors_id']) && !empty($row['authors_id'])) {
+//             $authorIds = is_array($row['authors_id']) ? $row['authors_id'] : explode(',', $row['authors_id']);
+//             if ($existingProduct) {
+//                 $product->authors()->sync($authorIds);
+//             } else {
+//                 $product->authors()->attach($authorIds);
+//             }
+//         }
+//     }
+//     private function handleGalleries($product, $row, $existingProduct)
+//     {
+//         try {
+//             $galleryUrls = explode(',', $row['product_galleries_url']);
+//             $galleryIds = [];
+
+//             foreach ($galleryUrls as $url) {
+//                 $url = trim($url);
+//                 if (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
+//                     $media = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
+//                     $media->save();
+//                     $galleryIds[] = $media->id;
+//                 }
+//             }
+//             if (!empty($galleryIds)) {
+//                 if ($existingProduct) {
+//                     $product->product_galleries()->sync($galleryIds);
+//                 } else {
+//                     $product->product_galleries()->attach($galleryIds);
+//                 }
+//             }
+//         } catch (Exception $e) {
+//             \Log::error('Gallery handling error: ' . $e->getMessage());
+//         }
+//     }
+//     private function handleDigitalFiles($product, $row, $existingProduct)
+//     {
+//         try {
+//             $digitalFileUrls = explode(',', $row['digital_files_url']);
+//             $digitalFileIds = [];
+
+//             foreach ($digitalFileUrls as $url) {
+//                 $url = trim($url);
+//                 if (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
+//                     $media = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
+//                     $media->save();
+//                     $digitalFileIds[] = $media->id;
+//                 }
+//             }
+//             if (!empty($digitalFileIds)) {
+//                 if ($existingProduct) {
+//                     $product->digital_files()->sync($digitalFileIds);
+//                 } else {
+//                     $product->digital_files()->attach($digitalFileIds);
+//                 }
+//             }
+//         } catch (Exception $e) {
+//             \Log::error('Digital files handling error: ' . $e->getMessage());
+//         }
+//     }
+//     private function handleVariations($product, $row, $existingProduct)
+//     {
+//         $variations = json_decode($row['variations']);
+//         if (is_array($variations)) {
+//             // For updates, delete existing variations first
+//             if ($existingProduct) {
+//                 $product->variations()->delete();
+//             }
+
+//             foreach ($variations as $variation) {
+//                 $this->createProductVariation($product, $variation);
+//             }
+//         }
+//     }
+//     private function shouldHandleLicenseKeys($product, $row)
+//     {
+//         return (isset($row['type']) && $row['type'] == 'simple' && isset($row['product_type']) && $row['product_type'] == 'digital') &&
+//                ($row['is_licensekey_auto'] == '0' && $row['is_licensable'] == '1') &&
+//                (!empty($row['license_keys']) && !empty($row['separator']));
+//     }
+//     // ... (keep all the existing helper methods: getVariationSKU, updateOrCreateWholesaleProduct, 
+//     // updateOrCreateProductLicenseKeys, getUniqueLicenseKey, createProductVariation, etc.)
+//     public function getVariationSKU($sku)
+//     {
+//         $i = 1;
+//         do {
+//             $sku = $sku.str_repeat(' (COPY)', $i++);
+//         } while (Variation::where('sku', $sku)->whereNull('deleted_at')->exists());
+//         return $sku;
+//     }
+//     public function updateOrCreateWholesaleProduct($product, $wholesalePrices)
+//     {
+//         $wholesaleIds = [];
+//         if (is_array($wholesalePrices)) {
+//             foreach ($wholesalePrices as $wholesalePrice) {
+//                 $wholesale = $product->wholesales()->updateOrCreate(['id' => $wholesalePrice['id'] ?? null], [
+//                     'min_qty' => $wholesalePrice['min_qty'],
+//                     'max_qty' => $wholesalePrice['max_qty'],
+//                     'value' =>  $wholesalePrice['value'],
+//                 ]);
+//                 $wholesaleIds[] = $wholesale?->id;
+//             }
+//             $product->wholesales()->whereNotIn('id', $wholesaleIds)?->delete();
+//             return $product;
+//         }
+//     }
+//     public function updateOrCreateProductLicenseKeys($product, $license_keys, $variation_id = null)
+//     {
+//         $licenseKeyIds = [];
+//         if (is_array($license_keys)) {
+//             foreach ($license_keys as $license_key) {
+//                 $licenseKey = $product->license_keys()->updateOrCreate(['license_key' => $license_key], [
+//                     'license_key' => $this->getUniqueLicenseKey($license_key),
+//                     'variation_id' => $variation_id,
+//                     'status' => 1,
+//                 ]);
+//                 $licenseKeyIds[] = $licenseKey?->id;
+//             }
+//             $product->license_keys()->whereNotIn('id', $licenseKeyIds)->where('variation_id', $variation_id)?->delete();
+//             return $product;
+//         }
+//     }
+//     public function getUniqueLicenseKey($license_key)
+//     {
+//         $i = 1;
+//         $originalKey = $license_key;
+
+//         do {
+//             $license_key = $originalKey . str_repeat(' (COPY)', $i++);
+//         } while (LicenseKey::where('license_key', $license_key)->whereNull('deleted_at')->exists());
+//         return $license_key;
+//     }
+//     public function createProductVariation($product, $variation)
+//     {
+//         $stock_status = StockStatus::OUT_OF_STOCK;
+//         if (isset($variation->quantity) && $variation->quantity > 0) {
+//             $stock_status = StockStatus::IN_STOCK;
+//         }
+//         $sale_price = null;
+//         if (isset($variation->discount) && $variation->discount > 0) {
+//             $sale_price = round($variation->price - (($variation->price * $variation->discount) / 100), 2);
+//         }
+//         // Handle multilingual variation name
+//         $currentLocale = app()->getLocale();
+//         $variationName = 'Default Variation';
+
+//         if (isset($variation->{'name' . $currentLocale})) {
+//             $variationName = $variation->{'name' . $currentLocale};
+//         } elseif (isset($variation->name)) {
+//             $variationName = $variation->name;
+//         }
+//         $variationData = [
+//             'name' => $variationName,
+//             'price' => $variation->price ?? 0,
+//             'sale_price' => $sale_price,
+//             'discount' => $variation->discount ?? 0,
+//             'quantity' => $variation->quantity ?? 0,
+//             'sku' => $this->getVariationSKU($variation->sku ?? 'VAR-' . uniqid()),
+//             'stock_status' => $stock_status,
+//             'status' => $variation->status ?? 1,
+//             'is_default' => $variation->is_default ?? 0,
+//         ];
+//         $productVariation = $product->variations()->create($variationData);
+//         // Handle variation relationships with error handling
+//         try {
+//             // Handle variation attributes
+//             if (isset($variation->attribute_values) && !empty($variation->attribute_values)) {
+//                 $productVariation->attribute_values()->attach(explode(',', $variation->attribute_values));
+//             }
+//             // Handle variation image
+//             if (isset($variation->variation_image_url) && !empty($variation->variation_image_url)) {
+//                 $this->handleVariationMedia($product, $productVariation, $variation->variation_image_url, 'variation_image_id');
+//             }
+//             // Handle variation galleries
+//             if (isset($variation->variation_galleries_url) && !empty($variation->variation_galleries_url)) {
+//                 $this->handleVariationGalleries($product, $productVariation, $variation->variation_galleries_url);
+//             }
+//             // Handle variation digital files
+//             if (isset($variation->variation_digital_files_url) && !empty($variation->variation_digital_files_url)) {
+//                 $this->handleVariationDigitalFiles($product, $productVariation, $variation->variation_digital_files_url);
+//             }
+//             // Handle variation license keys
+//             if (isset($variation->license_keys) && !empty($variation->license_keys) && 
+//                 isset($variation->separator) && !empty($variation->separator) &&
+//                 $product->product_type == 'digital' && $product->is_licensable == 1 && $product->is_licensekey_auto == 0) {
+
+//                 $license_keys = Helpers::explodeLicenseKeys($variation->separator, $variation->license_keys);
+//                 $this->updateOrCreateProductLicenseKeys($product, $license_keys, $productVariation->id);
+//             }
+//         } catch (Exception $e) {
+//             \Log::error('Variation media handling error: ' . $e->getMessage());
+//         }
+//         return $productVariation;
+//     }
+//    private function handleVariationMedia($product, $variation, $url, $fieldName)
+//     {
+//         try {
+//             if (filter_var($url, FILTER_VALIDATE_URL)) {
+//                 $media = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
+//                 $media->save();
+//                 $variation->$fieldName = $media->id;
+//                 $variation->save();
+//             }
+//         } catch (Exception $e) {
+//             \Log::error("Failed to handle variation media $url: " . $e->getMessage());
+//         }
+//     }
+
+//     private function handleVariationGalleries($product, $variation, $galleryUrls)
+//     {
+//         try {
+//             $urls = explode(',', $galleryUrls);
+//             $galleryIds = [];
+            
+//             foreach ($urls as $url) {
+//                 $url = trim($url);
+//                 if (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
+//                     $media = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
+//                     $media->save();
+//                     $galleryIds[] = $media->id;
+//                 }
+//             }
+            
+//             if (!empty($galleryIds)) {
+//                 $variation->variation_galleries()->attach($galleryIds);
+//             }
+//         } catch (Exception $e) {
+//             \Log::error('Variation galleries handling error: ' . $e->getMessage());
+//         }
+//     }
+
+//     private function handleVariationDigitalFiles($product, $variation, $digitalFileUrls)
+//     {
+//         try {
+//             $urls = explode(',', $digitalFileUrls);
+//             $digitalFileIds = [];
+            
+//             foreach ($urls as $url) {
+//                 $url = trim($url);
+//                 if (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
+//                     $media = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
+//                     $media->save();
+//                     $digitalFileIds[] = $media->id;
+//                 }
+//             }
+            
+//             if (!empty($digitalFileIds)) {
+//                 $variation->variation_digital_files()->attach($digitalFileIds);
+//             }
+//         } catch (Exception $e) {
+//             \Log::error('Variation digital files handling error: ' . $e->getMessage());
+//         }
+//     }
+
+//   private function filterRow($row)
+// {
+//     $rows = [];
+    
+//     foreach ($row as $key => $value) {
+//         $lastUnderscorePos = strrpos($key, "_");
+        
+//         if ($lastUnderscorePos !== false) {
+//             $separatedKeys = [
+//                 1 => substr($key, 0, $lastUnderscorePos),
+//                 2 => substr($key, $lastUnderscorePos + 1),
+//             ];
+            
+//             if (in_array(head($separatedKeys), $this->translateFields)) {
+//                 $rows[head($separatedKeys)][last($separatedKeys)] = $value;
+//             } else {
+//                 $rows[$key] = $value;
+//             }
+//         } else {
+//             $rows[$key] = $value;
+//         }
+//     }
+    
+//     // Remove empty values and normalize data
+//     $filteredRow = array_filter($rows, function($value) {
+//         return !is_null($value) && $value !== '';
+//     });
+    
+//     // Convert string booleans to actual booleans
+//     $booleanFields = [
+//         'show_stock_quantity', 'is_featured', 'secure_checkout', 'safe_checkout',
+//         'social_share', 'encourage_order', 'encourage_view', 'is_cod', 'is_return',
+//         'is_free_shipping', 'is_changeable', 'is_sale_enable', 'is_external',
+//         'watermark', 'is_licensable', 'is_licensekey_auto', 'status', 'is_trending',
+//         'is_random_related_products'
+//     ];
+    
+//     foreach ($booleanFields as $field) {
+//         if (isset($filteredRow[$field])) {
+//             $filteredRow[$field] = filter_var($filteredRow[$field], FILTER_VALIDATE_BOOLEAN);
+//         }
+//     }
+    
+//     // Convert numeric fields
+//     $numericFields = ['price', 'quantity', 'discount', 'weight', 'shipping_days' , 'sale_price'];
+//     foreach ($numericFields as $field) {
+//         if (isset($filteredRow[$field])) {
+//             $filteredRow[$field] = is_numeric($filteredRow[$field]) ? 
+//                 (float)$filteredRow[$field] : $filteredRow[$field];
+//         }
+//     }
+    
+//     return $filteredRow;
+// }
+
+// // private function setTranslations($product, $row)
+// // {
+// //     $locale = app()->getLocale();
+    
+// //     foreach ($row as $key => $value) {
+// //         if ($product->isTranslatableAttribute($key)) {
+// //             $translations = is_array($value) ? $value : [$locale => $value];
+// //             $product->setTranslations($key, $translations);
+// //         }
+// //     }
+    
+// //     return $product->save();
+// // }
+// private function setTranslations($product, $row)
+// {
+//     $locale = app()->getLocale();
+    
+//     foreach ($row as $key => $value) {
+//         // Only update translations if field is present AND non-empty
+//         if ($product->isTranslatableAttribute($key) && !empty($value)) {
+//             $translations = is_array($value) ? $value : [$locale => $value];
+            
+//             // MERGE with existing translations, don't overwrite
+//             $existing = $product->getTranslations($key);
+//             $merged = array_merge($existing, $translations);
+//             $product->setTranslations($key, $merged);
+//         }
+//     }
+    
+//     return $product->save();
+// }
+
+//     // private function filterRow($row)
+//     // {
+//     //     // Remove empty values and normalize data
+//     //     $filteredRow = array_filter($row, function($value) {
+//     //         return !is_null($value) && $value !== '';
+//     //     });
+        
+//     //     // Convert string booleans to actual booleans
+//     //     $booleanFields = [
+//     //         'show_stock_quantity', 'is_featured', 'secure_checkout', 'safe_checkout',
+//     //         'social_share', 'encourage_order', 'encourage_view', 'is_cod', 'is_return',
+//     //         'is_free_shipping', 'is_changeable', 'is_sale_enable', 'is_external',
+//     //         'watermark', 'is_licensable', 'is_licensekey_auto', 'status', 'is_trending',
+//     //         'is_random_related_products'
+//     //     ];
+        
+//     //     foreach ($booleanFields as $field) {
+//     //         if (isset($filteredRow[$field])) {
+//     //             $filteredRow[$field] = filter_var($filteredRow[$field], FILTER_VALIDATE_BOOLEAN);
+//     //         }
+//     //     }
+        
+//     //     // Convert numeric fields
+//     //     $numericFields = ['price', 'quantity', 'discount', 'weight', 'shipping_days'];
+//     //     foreach ($numericFields as $field) {
+//     //         if (isset($filteredRow[$field])) {
+//     //             $filteredRow[$field] = is_numeric($filteredRow[$field]) ? 
+//     //                 (float)$filteredRow[$field] : $filteredRow[$field];
+//     //         }
+//     //     }
+        
+//     //     return $filteredRow;
+//     // }
+
+//     private function formatProductResponse($product)
+//     {
+//         return [
+//             'id' => $product->id,
+//             'name' => $product->name,
+//             'sku' => $product->sku,
+//             'price' => $product->price,
+//             'sale_price' => $product->sale_price,
+//             'quantity' => $product->quantity,
+//             'stock_status' => $product->stock_status,
+//             'is_approved' => $product->is_approved,
+//             'status' => $product->status,
+//             'created_at' => $product->created_at,
+//             'updated_at' => $product->updated_at,
+//         ];
+//     }
+// }
+
+
 namespace App\Imports;
+
 use Exception;
 use App\Enums\RoleEnum;
 use App\Models\Product;
@@ -1480,424 +2382,436 @@ use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Illuminate\Validation\Rule;
+
 class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError
 {
     private $products = [];
-    private $translateFields = ['name','short_description','description','meta_title','meta_description','estimated_delivery_text','return_policy_text'];
+
+    // These fields are translatable — handled ONLY via setTranslations(), never via update()
+    private $translateFields = [
+        'name', 'short_description', 'description',
+        'meta_title', 'meta_description',
+        'estimated_delivery_text', 'return_policy_text'
+    ];
+
     public function rules(): array
     {
         return [
-            'name'  => ['nullable', 'string', 'max:255'],
-            'product_type' =>  ['nullable','in:physical,digital,external'],
-            'description' => ['nullable', 'string', 'min:10'],
-            'short_description' => ['nullable'],
-            'type' => ['nullable','in:simple,classified'],
-            'price' => ['nullable', 'numeric'],
-             'sale_price' => ['nullable', 'numeric'],
-            'stock_status' => ['nullable', 'in:in_stock,out_of_stock'],
-            'quantity' => ['nullable', 'numeric', 'min:0'],
-            'sku' => ['nullable', 'string'],
-            'discount' => ['nullable','numeric','regex:/^([0-9]{1,2}){1}(\.[0-9]{1,2})?$/'],
-            'show_stock_quantity' => ['nullable', 'boolean'],
-            'is_featured' => ['nullable', 'boolean'],
-            'secure_checkout' => ['nullable', 'boolean'],
-            'safe_checkout' => ['nullable', 'boolean'],
-            'social_share' => ['nullable', 'boolean'],
-            'encourage_order' => ['nullable', 'boolean'],
-            'encourage_view' => ['nullable', 'boolean'],
-            'is_cod' => ['nullable', 'boolean'],
-            'is_return' => ['nullable', 'boolean'],
-            'is_free_shipping' => ['nullable', 'boolean'],
-            'is_changeable' => ['nullable', 'boolean'],
-            'is_sale_enable' => ['nullable', 'boolean'],
-            'is_external' => ['nullable', 'boolean'],
-            'external_url' => ['nullable', 'url'],
-            'watermark' => ['nullable', 'boolean'],
-            'watermark_position' => ['nullable', 'string'],
-            'is_licensable' => ['nullable', 'boolean'],
-            'is_licensekey_auto' => ['nullable', 'boolean'],
-            'sale_starts_at' => ['nullable', 'date'],
-            'store_id' => ['nullable','exists:stores,id,deleted_at,NULL'],
-            'brand_id' => ['nullable','exists:brands,id,deleted_at,NULL'],
-            'sale_expired_at' => ['nullable','date', 'after_or_equal:sale_starts_at'],
-            'separator' => ['nullable', 'in:new_line,double_new_line,comma,semicolon,pipe'],
-            'status' => ['nullable', 'boolean'],
-            'visible_time' => ['nullable','date'],
-            'variations' => ['nullable', 'json'],
-            // Image URL validations
-            'product_thumbnail_url' => ['nullable', 'url'],
-            'product_meta_image_url' => ['nullable', 'url'],
-            'size_chart_image_url' => ['nullable', 'url'],
-            'preview_audio_file_url' => ['nullable', 'url'],
-            'preview_video_file_url' => ['nullable', 'url'],
-            'product_galleries_url' => ['nullable', 'string'],
-            'digital_files_url' => ['nullable', 'string'],
-            'watermark_image_url' => ['nullable', 'url'],
+            'name'                    => ['nullable', 'string', 'max:255'],
+            'product_type'            => ['nullable', 'in:physical,digital,external'],
+            'description'             => ['nullable', 'string', 'min:10'],
+            'short_description'       => ['nullable'],
+            'type'                    => ['nullable', 'in:simple,classified'],
+            'price'                   => ['nullable', 'numeric'],
+            'sale_price'              => ['nullable', 'numeric'],
+            'stock_status'            => ['nullable', 'in:in_stock,out_of_stock'],
+            'quantity'                => ['nullable', 'numeric', 'min:0'],
+            'sku'                     => ['nullable', 'string'],
+            'discount'                => ['nullable', 'numeric', 'regex:/^([0-9]{1,2}){1}(\.[0-9]{1,2})?$/'],
+            'show_stock_quantity'     => ['nullable', 'boolean'],
+            'is_featured'             => ['nullable', 'boolean'],
+            'secure_checkout'         => ['nullable', 'boolean'],
+            'safe_checkout'           => ['nullable', 'boolean'],
+            'social_share'            => ['nullable', 'boolean'],
+            'encourage_order'         => ['nullable', 'boolean'],
+            'encourage_view'          => ['nullable', 'boolean'],
+            'is_cod'                  => ['nullable', 'boolean'],
+            'is_return'               => ['nullable', 'boolean'],
+            'is_free_shipping'        => ['nullable', 'boolean'],
+            'is_changeable'           => ['nullable', 'boolean'],
+            'is_sale_enable'          => ['nullable', 'boolean'],
+            'is_external'             => ['nullable', 'boolean'],
+            'external_url'            => ['nullable', 'url'],
+            'watermark'               => ['nullable', 'boolean'],
+            'watermark_position'      => ['nullable', 'string'],
+            'is_licensable'           => ['nullable', 'boolean'],
+            'is_licensekey_auto'      => ['nullable', 'boolean'],
+            'sale_starts_at'          => ['nullable', 'date'],
+            'store_id'                => ['nullable', 'exists:stores,id,deleted_at,NULL'],
+            'brand_id'                => ['nullable', 'exists:brands,id,deleted_at,NULL'],
+            'sale_expired_at'         => ['nullable', 'date', 'after_or_equal:sale_starts_at'],
+            'separator'               => ['nullable', 'in:new_line,double_new_line,comma,semicolon,pipe'],
+            'status'                  => ['nullable', 'boolean'],
+            'visible_time'            => ['nullable', 'date'],
+            'variations'              => ['nullable', 'json'],
+            'product_thumbnail_url'   => ['nullable', 'url'],
+            'product_meta_image_url'  => ['nullable', 'url'],
+            'size_chart_image_url'    => ['nullable', 'url'],
+            'preview_audio_file_url'  => ['nullable', 'url'],
+            'preview_video_file_url'  => ['nullable', 'url'],
+            'product_galleries_url'   => ['nullable', 'string'],
+            'digital_files_url'       => ['nullable', 'string'],
+            'watermark_image_url'     => ['nullable', 'url'],
         ];
     }
+
     public function customValidationMessages()
     {
         return [
-            'name.required' => ('validation.name_Required'),
-            'name.string' => ('validation.name_in_string'),
-            'name.max' => ('validation.name_not_exceed'),
-            'name.unique' => ('validation.name_already_taken'),
-            'external_url.url' => ('validation.external_url_must_be_valid'),
-            'product_thumbnail_url.url' => ('validation.product_thumbnail_url_must_be_valid'),
-            'product_meta_image_url.url' => __('validation.product_meta_image_url_must_be_valid'),
-            // Add more custom messages as needed
+            'name.required'                  => ('validation.name_Required'),
+            'name.string'                    => ('validation.name_in_string'),
+            'name.max'                       => ('validation.name_not_exceed'),
+            'name.unique'                    => ('validation.name_already_taken'),
+            'external_url.url'               => ('validation.external_url_must_be_valid'),
+            'product_thumbnail_url.url'      => ('validation.product_thumbnail_url_must_be_valid'),
+            'product_meta_image_url.url'     => __('validation.product_meta_image_url_must_be_valid'),
         ];
     }
+
     public function onError(\Throwable $e)
     {
-        throw new ExceptionHandler($e->getMessage() , 422);
+        throw new ExceptionHandler($e->getMessage(), 422);
     }
+
     public function getImportedProducts()
     {
         return $this->products;
     }
+
     public function getMinPriceVariation($request, $price)
     {
         return head(array_filter(json_decode($request['variations']), function ($variation) use ($price) {
             return $variation->price == $price;
         }));
     }
-    // public function model(array $row)
-    // {
-    //     DB::beginTransaction();
-    //     try {
-    //         $store_id = null;
-    //         $roleName = Helpers::getCurrentRoleName();
-    //         $isAutoApprove = true; // Default value
 
-    //         if ($roleName != RoleEnum::ADMIN) {
-    //             $settings = Helpers::getSettings();
-    //             if ($roleName == RoleEnum::VENDOR) {
-    //                 if (!Helpers::isMultiVendorEnable()) {
-    //                     throw new Exception(__('auth.multi_vendor_deactivated'), 403);
-    //                 }
-    //                 $store_id = Helpers::getCurrentVendorStoreId();
-    //             }
-    //             $isAutoApprove = $settings['activation']['product_auto_approve'] ?? true;
-    //         }
-    //         // Check if product exists by SKU for update
-    //         $existingProduct = null;
-    //         if (isset($row['sku']) && !empty($row['sku'])) {
-    //             $existingProduct = Product::where('sku', $row['sku'])
-    //                 ->whereNull('deleted_at')
-    //                 ->first();
-    //         }
-    //         // Calculate variation-based pricing
-    //         $price = null;
-    //         $sale_price = null;
-    //         $discount = null;
-    //         $quantity = null;
-    //         $stock_status = null;
-    //         if(isset($row['variations']) && !empty($row['variations']) && isset($row['type']) && $row['type'] == 'classified') {
-    //             $variations = json_decode($row['variations']);
-    //             if (is_array($variations) && count($variations)) {
-    //                 $price = min(array_column($variations, 'price'));
-    //                 $minPriceVariation = $this->getMinPriceVariation($row, $price);
-    //                 $discount = $minPriceVariation->discount ?? 0;
-    //                 $sale_price = round($price - (($price * $discount)/100), 2);
-    //                 $quantity = max(array_column($variations, 'quantity'));
-    //                 $stock_status = $quantity > 0 ? StockStatus::IN_STOCK : StockStatus::OUT_OF_STOCK;
-    //             }
-    //         }
-    //         // Handle simple product stock status
-    //         if (isset($row['quantity']) && !is_null($row['quantity'])) {
-    //             $stock_status = $row['quantity'] > 0 ? StockStatus::IN_STOCK : StockStatus::OUT_OF_STOCK;
-    //         }
-    //         // Calculate sale price from discount
-    //         if (isset($row['discount']) && !is_null($row['discount']) && $row['discount'] > 0) {
-    //             $mrpPrice = $row['price'] ?? $price ?? 0;
-    //             $sale_price = round($mrpPrice - (($mrpPrice * $row['discount'])/100), 2);
-    //         }
-
-    //         $row = $this->filterRow($row);
-
-    //         // Update existing product or create new one
-    //         if ($existingProduct) {
-    //             $product = $existingProduct;
-    //             $this->updateProduct($product, $row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status);
-    //         } else {
-    //             $product = $this->createProduct($row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status);
-    //         }
-    //         $this->setTranslations($product, $row);
-    //         // Handle media files with error handling
-    //         $this->handleMediaFiles($product, $row);
-    //         // Handle relationships
-    //         $this->handleRelationships($product, $row, $existingProduct);
-    //         // Handle variations
-    //         if (isset($row['variations']) && !is_null($row['variations']) && isset($row['type']) && $row['type'] == 'classified'){
-    //             $this->handleVariations($product, $row, $existingProduct);
-    //         }
-    //         // Handle license keys
-    //         if ($this->shouldHandleLicenseKeys($product, $row)) {
-    //             $license_keys = Helpers::explodeLicenseKeys($row['separator'], $row['license_keys']);
-    //             $this->updateOrCreateProductLicenseKeys($product, $license_keys);
-    //         }
-    //         // Handle wholesale prices
-    //         if (isset($row['wholesale_prices'])) {
-    //             $this->updateOrCreateWholesaleProduct($product, $row['wholesale_prices']);
-    //         }
-    //         $this->products[] = $this->formatProductResponse($product);
-    //         DB::commit();
-    //         return $product;
-    //     } catch (Exception $e) {
-    //         DB::rollback();
-    //         throw new ExceptionHandler($e->getMessage(), $e->getCode());
-    //     }
-    // }
     public function model(array $row)
-{
-    DB::beginTransaction();
-    try {
-        // Filter and clean the row data FIRST
-        $row = $this->filterRow($row);
-        
-        $store_id = null;
-        $roleName = Helpers::getCurrentRoleName();
-        $isAutoApprove = true; // Default value
+    {
+        DB::beginTransaction();
+        try {
+            // Filter and clean the row data FIRST
+            $row = $this->filterRow($row);
 
-        if ($roleName != RoleEnum::ADMIN) {
-            $settings = Helpers::getSettings();
-            if ($roleName == RoleEnum::VENDOR) {
-                if (!Helpers::isMultiVendorEnable()) {
-                    throw new Exception(__('auth.multi_vendor_deactivated'), 403);
+            $store_id      = null;
+            $roleName      = Helpers::getCurrentRoleName();
+            $isAutoApprove = true;
+
+            if ($roleName != RoleEnum::ADMIN) {
+                $settings = Helpers::getSettings();
+                if ($roleName == RoleEnum::VENDOR) {
+                    if (!Helpers::isMultiVendorEnable()) {
+                        throw new Exception(__('auth.multi_vendor_deactivated'), 403);
+                    }
+                    $store_id = Helpers::getCurrentVendorStoreId();
                 }
-                $store_id = Helpers::getCurrentVendorStoreId();
+                $isAutoApprove = $settings['activation']['product_auto_approve'] ?? true;
             }
-            $isAutoApprove = $settings['activation']['product_auto_approve'] ?? true;
-        }
 
-        // Check if product exists by SKU for update
-        $existingProduct = null;
-        if (isset($row['sku']) && !empty($row['sku'])) {
-            $existingProduct = Product::where('sku', $row['sku'])
-                ->whereNull('deleted_at')
-                ->first();
-        }
-
-        // Calculate variation-based pricing
-        $price = null;
-        $sale_price = null;
-        $discount = null;
-        $quantity = null;
-        $stock_status = null;
-        
-         if (isset($row['sale_price']) && !empty($row['sale_price'])) {
-            $sale_price = (float) $row['sale_price'];
-        }
-
-        if(isset($row['variations']) && !empty($row['variations']) && isset($row['type']) && $row['type'] == 'classified') {
-            $variations = json_decode($row['variations']);
-            if (is_array($variations) && count($variations)) {
-                $price = min(array_column($variations, 'price'));
-                $minPriceVariation = $this->getMinPriceVariation($row, $price);
-                $discount = $minPriceVariation->discount ?? 0;
-                $sale_price = round($price - (($price * $discount)/100), 2);
-                $quantity = max(array_column($variations, 'quantity'));
-                $stock_status = $quantity > 0 ? StockStatus::IN_STOCK : StockStatus::OUT_OF_STOCK;
+            // Check if product exists by SKU for update
+            $existingProduct = null;
+            if (isset($row['sku']) && !empty($row['sku'])) {
+                $existingProduct = Product::where('sku', $row['sku'])
+                    ->whereNull('deleted_at')
+                    ->first();
             }
+
+            // Prevent creating new product without a name
+            if (!$existingProduct && empty($row['name'])) {
+                throw new Exception("Cannot create new product without a name. SKU: " . ($row['sku'] ?? 'unknown'));
+            }
+
+            // Calculate variation-based pricing
+            $price        = null;
+            $sale_price   = null;
+            $discount     = null;
+            $quantity     = null;
+            $stock_status = null;
+
+            // Capture explicit sale_price from CSV first
+            if (isset($row['sale_price']) && !empty($row['sale_price'])) {
+                $sale_price = (float) $row['sale_price'];
+            }
+
+            // Classified product — derive price/qty/discount from variations
+            if (isset($row['variations']) && !empty($row['variations']) && isset($row['type']) && $row['type'] == 'classified') {
+                $variations = json_decode($row['variations']);
+                if (is_array($variations) && count($variations)) {
+                    $price              = min(array_column($variations, 'price'));
+                    $minPriceVariation  = $this->getMinPriceVariation($row, $price);
+                    $discount           = $minPriceVariation->discount ?? 0;
+                    $sale_price         = round($price - (($price * $discount) / 100), 2);
+                    $quantity           = max(array_column($variations, 'quantity'));
+                    $stock_status       = $quantity > 0 ? StockStatus::IN_STOCK : StockStatus::OUT_OF_STOCK;
+                }
+            }
+
+            // Simple product stock status from quantity
+            if (isset($row['quantity']) && !is_null($row['quantity'])) {
+                $stock_status = $row['quantity'] > 0 ? StockStatus::IN_STOCK : StockStatus::OUT_OF_STOCK;
+            }
+
+            // Calculate sale_price from discount only if not already set
+            if ($sale_price === null && isset($row['discount']) && !is_null($row['discount']) && $row['discount'] > 0) {
+                $mrpPrice   = $row['price'] ?? $price ?? 0;
+                $sale_price = round($mrpPrice - (($mrpPrice * $row['discount']) / 100), 2);
+            }
+
+            // Update existing product or create new one
+            if ($existingProduct) {
+                $product = $existingProduct;
+                $this->updateProduct($product, $row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status);
+            } else {
+                $product = $this->createProduct($row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status);
+            }
+
+            // Handle translatable fields (MERGE, never overwrite)
+            $this->setTranslations($product, $row);
+
+            // Handle media files
+            $this->handleMediaFiles($product, $row);
+
+            // Handle relationships
+            $this->handleRelationships($product, $row, $existingProduct);
+
+            // Handle variations
+            if (isset($row['variations']) && !is_null($row['variations']) && isset($row['type']) && $row['type'] == 'classified') {
+                $this->handleVariations($product, $row, $existingProduct);
+            }
+
+            // Handle license keys
+            if ($this->shouldHandleLicenseKeys($product, $row)) {
+                $license_keys = Helpers::explodeLicenseKeys($row['separator'], $row['license_keys']);
+                $this->updateOrCreateProductLicenseKeys($product, $license_keys);
+            }
+
+            // Handle wholesale prices
+            if (isset($row['wholesale_prices'])) {
+                $this->updateOrCreateWholesaleProduct($product, $row['wholesale_prices']);
+            }
+
+            $this->products[] = $this->formatProductResponse($product);
+            DB::commit();
+            return $product;
+
+        } catch (Exception $e) {
+            DB::rollback();
+            throw new ExceptionHandler($e->getMessage(), $e->getCode());
         }
-
-        // Handle simple product stock status
-        if (isset($row['quantity']) && !is_null($row['quantity'])) {
-            $stock_status = $row['quantity'] > 0 ? StockStatus::IN_STOCK : StockStatus::OUT_OF_STOCK;
-        }
-
-        // Calculate sale price from discount
-        // if (isset($row['discount']) && !is_null($row['discount']) && $row['discount'] > 0) {
-        //     $mrpPrice = $row['price'] ?? $price ?? 0;
-        //     $sale_price = round($mrpPrice - (($mrpPrice * $row['discount'])/100), 2);
-        // }
-        
-         if ($sale_price === null && isset($row['discount']) && !is_null($row['discount']) && $row['discount'] > 0) {
-            $mrpPrice = $row['price'] ?? $price ?? 0;
-            $sale_price = round($mrpPrice - (($mrpPrice * $row['discount'])/100), 2);
-        }
-
-        // Update existing product or create new one
-        if ($existingProduct) {
-            $product = $existingProduct;
-            $this->updateProduct($product, $row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status);
-        } else {
-            $product = $this->createProduct($row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status);
-        }
-
-        $this->setTranslations($product, $row);
-
-        // Handle media files with error handling
-        $this->handleMediaFiles($product, $row);
-
-        // Handle relationships
-        $this->handleRelationships($product, $row, $existingProduct);
-
-        // Handle variations
-        if (isset($row['variations']) && !is_null($row['variations']) && isset($row['type']) && $row['type'] == 'classified'){
-            $this->handleVariations($product, $row, $existingProduct);
-        }
-
-        // Handle license keys
-        if ($this->shouldHandleLicenseKeys($product, $row)) {
-            $license_keys = Helpers::explodeLicenseKeys($row['separator'], $row['license_keys']);
-            $this->updateOrCreateProductLicenseKeys($product, $license_keys);
-        }
-
-        // Handle wholesale prices
-        if (isset($row['wholesale_prices'])) {
-            $this->updateOrCreateWholesaleProduct($product, $row['wholesale_prices']);
-        }
-
-        $this->products[] = $this->formatProductResponse($product);
-        DB::commit();
-        return $product;
-    } catch (Exception $e) {
-        DB::rollback();
-        throw new ExceptionHandler($e->getMessage(), $e->getCode());
     }
-}
+
     private function updateProduct($product, $row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status)
     {
         $updateData = [];
 
-        // Only update fields that are present in the row
-      $fieldsToUpdate = [
-                'name', 'product_type', 'short_description', 'description', 'type', 'unit',
-                'weight', 'meta_title', 'meta_description', 'is_free_shipping', 'is_external',
-                'external_button_text', 'external_url', 'is_featured', 'is_return', 'is_trending',
-                'is_sale_enable', 'is_random_related_products', 'sale_starts_at', 'sale_expired_at',
-                'shipping_days', 'show_stock_quantity', 'estimated_delivery_text', 'return_policy_text',
-                'safe_checkout', 'secure_checkout', 'social_share', 'encourage_order', 'encourage_view',
-                'status', 'is_licensable', 'preview_url', 'watermark', 'watermark_position',
-                'wholesale_price_type', 'separator', 'preview_type', 'is_licensekey_auto',
-                'external_details', 'publication_id', 'price', 'discount', 'sale_price'  // Add these
-            ];
+        // Non-translatable fields only — translatable fields are handled by setTranslations()
+        $fieldsToUpdate = [
+            'product_type', 'type', 'unit', 'weight',
+            'is_free_shipping', 'is_external', 'external_button_text', 'external_url',
+            'is_featured', 'is_return', 'is_trending', 'is_sale_enable',
+            'is_random_related_products', 'sale_starts_at', 'sale_expired_at',
+            'shipping_days', 'show_stock_quantity',
+            'safe_checkout', 'secure_checkout', 'social_share',
+            'encourage_order', 'encourage_view', 'status',
+            'is_licensable', 'preview_url', 'watermark', 'watermark_position',
+            'wholesale_price_type', 'separator', 'preview_type', 'is_licensekey_auto',
+            'publication_id', 'price', 'discount', 'sale_price',
+        ];
+
         foreach ($fieldsToUpdate as $field) {
             if (array_key_exists($field, $row)) {
                 $updateData[$field] = $row[$field];
             }
         }
-        // Handle calculated fields
-        if ($quantity !== null) $updateData['quantity'] = $quantity;
-        if ($price !== null) $updateData['price'] = $price;
-        // if ($sale_price !== null) $updateData['sale_price'] = $sale_price;
-        if ($discount !== null) $updateData['discount'] = $discount;
+
+        // Handle calculated fields (these take priority over raw CSV values)
+        if ($quantity !== null)     $updateData['quantity']     = $quantity;
+        if ($price !== null)        $updateData['price']        = $price;
+        if ($discount !== null)     $updateData['discount']     = $discount;
         if ($stock_status !== null) $updateData['stock_status'] = $stock_status;
-        
+
+        // Sale price priority: calculated > explicit CSV value > derive from price+discount
         if ($sale_price !== null) {
-        $updateData['sale_price'] = $sale_price;
-            } elseif (array_key_exists('sale_price', $row) && !empty($row['sale_price'])) {
-                $updateData['sale_price'] = $row['sale_price'];
-            } elseif (isset($updateData['price']) && isset($updateData['discount']) && $updateData['discount'] > 0) {
-                // Calculate sale_price if we have price and discount
-                $updateData['sale_price'] = round($updateData['price'] - (($updateData['price'] * $updateData['discount']) / 100), 2);
-            }
-        // Handle special fields
-        if ($store_id !== null) $updateData['store_id'] = $store_id;
+            $updateData['sale_price'] = $sale_price;
+        } elseif (array_key_exists('sale_price', $row) && !empty($row['sale_price'])) {
+            $updateData['sale_price'] = $row['sale_price'];
+        } elseif (isset($updateData['price']) && isset($updateData['discount']) && $updateData['discount'] > 0) {
+            $updateData['sale_price'] = round(
+                $updateData['price'] - (($updateData['price'] * $updateData['discount']) / 100),
+                2
+            );
+        }
+
+        // Store ID (vendor context only)
+        if ($store_id !== null) {
+            $updateData['store_id'] = $store_id;
+        }
+
+        // Only update is_approved if explicitly provided in CSV — never reset it automatically
         if (array_key_exists('is_approved', $row)) {
             $updateData['is_approved'] = $row['is_approved'];
-        } else {
-            $updateData['is_approved'] = $isAutoApprove;
         }
+
         // Handle external_details JSON
         if (array_key_exists('external_details', $row)) {
-            $updateData['external_details'] = is_string($row['external_details']) 
-                ? json_decode($row['external_details'], true) 
+            $updateData['external_details'] = is_string($row['external_details'])
+                ? json_decode($row['external_details'], true)
                 : $row['external_details'];
         }
+
         $product->update($updateData);
     }
+
     private function createProduct($row, $store_id, $isAutoApprove, $price, $sale_price, $discount, $quantity, $stock_status)
     {
         $productData = [
-            'name' => $row['name'] ?? 'Untitled Product',
-            'product_type' => $row['product_type'] ?? 'physical',
-            'short_description' => $row['short_description'] ?? null,
-            'description' => $row['description'] ?? 'No description provided',
-            'type' => $row['type'] ?? 'simple',
-            'unit' => $row['unit'] ?? null,
-            'quantity' => $quantity ?? $row['quantity'] ?? 0,
-            'weight' => $row['weight'] ?? null,
-            'price' => $price ?? $row['price'] ?? 0,
-            'sale_price' => $sale_price ?? $row['sale_price'] ?? null,
-            'discount' => $discount ?? $row['discount'] ?? 0,
-            'sku' => $row['sku'] ?? 'SKU-' . uniqid(),
-            'stock_status' => $stock_status ?? $row['stock_status'] ?? 'out_of_stock',
-            'meta_title' => $row['meta_title'] ?? null,
-            'meta_description' => $row['meta_description'] ?? null,
-            'store_id' => $store_id ?? $row['store_id'] ?? null,
-            'is_free_shipping' => $row['is_free_shipping'] ?? 0,
-            'is_external' => $row['is_external'] ?? 0,
-            'external_button_text' => $row['external_button_text'] ?? null,
-            'external_url'=> $row['external_url'] ?? null,
-            'is_featured' => $row['is_featured'] ?? 0,
-            'is_return' => $row['is_return'] ?? 0,
-            'is_trending' => $row['is_trending'] ?? 0,
-            'is_sale_enable' => $row['is_sale_enable'] ?? 0,
+            'name'                       => $row['name'] ?? 'Untitled Product',
+            'product_type'               => $row['product_type'] ?? 'physical',
+            'short_description'          => $row['short_description'] ?? null,
+            'description'                => $row['description'] ?? 'No description provided',
+            'type'                       => $row['type'] ?? 'simple',
+            'unit'                       => $row['unit'] ?? null,
+            'quantity'                   => $quantity ?? $row['quantity'] ?? 0,
+            'weight'                     => $row['weight'] ?? null,
+            'price'                      => $price ?? $row['price'] ?? 0,
+            'sale_price'                 => $sale_price ?? $row['sale_price'] ?? null,
+            'discount'                   => $discount ?? $row['discount'] ?? 0,
+            'sku'                        => $row['sku'] ?? 'SKU-' . uniqid(),
+            'stock_status'               => $stock_status ?? $row['stock_status'] ?? 'out_of_stock',
+            'meta_title'                 => $row['meta_title'] ?? null,
+            'meta_description'           => $row['meta_description'] ?? null,
+            'store_id'                   => $store_id ?? $row['store_id'] ?? null,
+            'is_free_shipping'           => $row['is_free_shipping'] ?? 0,
+            'is_external'                => $row['is_external'] ?? 0,
+            'external_button_text'       => $row['external_button_text'] ?? null,
+            'external_url'               => $row['external_url'] ?? null,
+            'is_featured'                => $row['is_featured'] ?? 0,
+            'is_return'                  => $row['is_return'] ?? 0,
+            'is_trending'                => $row['is_trending'] ?? 0,
+            'is_sale_enable'             => $row['is_sale_enable'] ?? 0,
             'is_random_related_products' => $row['is_random_related_products'] ?? 0,
-            'sale_starts_at' => $row['sale_starts_at'] ?? null,
-            'sale_expired_at' => $row['sale_expired_at'] ?? null,
-            'shipping_days' => $row['shipping_days'] ?? null,
-            'show_stock_quantity' => $row['show_stock_quantity'] ?? 0,
-            'estimated_delivery_text' => $row['estimated_delivery_text'] ?? null,
-            'return_policy_text' => $row['return_policy_text'] ?? null,
-            'safe_checkout' => $row['safe_checkout'] ?? 0,
-            'secure_checkout' => $row['secure_checkout'] ?? 0,
-            'social_share' => $row['social_share'] ?? 0,
-            'encourage_order' => $row['encourage_order'] ?? 0,
-            'encourage_view' => $row['encourage_view'] ?? 0,
-            'is_approved' => $row['is_approved'] ?? $isAutoApprove,
-            'status' => $row['status'] ?? 1,
-            'is_licensable' => $row['is_licensable'] ?? 0,
-            'preview_url' => $row['preview_url'] ?? null,
-            'watermark' => $row['watermark'] ?? 0,
-            'watermark_position' => $row['watermark_position'] ?? null,
-            'wholesale_price_type' => $row['wholesale_price_type'] ?? null,
-            'separator' => $row['separator'] ?? null,
-            'preview_type' => $row['preview_type'] ?? null,
-            'is_licensekey_auto' => $row['is_licensekey_auto'] ?? 0,
-            'external_details' => is_string($row['external_details'] ?? null)
-                ? json_decode($row['external_details'], true)
-                : ($row['external_details'] ?? null),
-            'publication_id' => $row['publication_id'] ?? null,
+            'sale_starts_at'             => $row['sale_starts_at'] ?? null,
+            'sale_expired_at'            => $row['sale_expired_at'] ?? null,
+            'shipping_days'              => $row['shipping_days'] ?? null,
+            'show_stock_quantity'        => $row['show_stock_quantity'] ?? 0,
+            'estimated_delivery_text'    => $row['estimated_delivery_text'] ?? null,
+            'return_policy_text'         => $row['return_policy_text'] ?? null,
+            'safe_checkout'              => $row['safe_checkout'] ?? 0,
+            'secure_checkout'            => $row['secure_checkout'] ?? 0,
+            'social_share'               => $row['social_share'] ?? 0,
+            'encourage_order'            => $row['encourage_order'] ?? 0,
+            'encourage_view'             => $row['encourage_view'] ?? 0,
+            'is_approved'                => $row['is_approved'] ?? $isAutoApprove,
+            'status'                     => $row['status'] ?? 1,
+            'is_licensable'              => $row['is_licensable'] ?? 0,
+            'preview_url'                => $row['preview_url'] ?? null,
+            'watermark'                  => $row['watermark'] ?? 0,
+            'watermark_position'         => $row['watermark_position'] ?? null,
+            'wholesale_price_type'       => $row['wholesale_price_type'] ?? null,
+            'separator'                  => $row['separator'] ?? null,
+            'preview_type'               => $row['preview_type'] ?? null,
+            'is_licensekey_auto'         => $row['is_licensekey_auto'] ?? 0,
+            'external_details'           => is_string($row['external_details'] ?? null)
+                                                ? json_decode($row['external_details'], true)
+                                                : ($row['external_details'] ?? null),
+            'publication_id'             => $row['publication_id'] ?? null,
         ];
+
         return Product::create($productData);
     }
+
+    private function setTranslations($product, $row)
+    {
+        $locale = app()->getLocale();
+
+        foreach ($row as $key => $value) {
+            // Only process translatable fields that are present and non-empty
+            if ($product->isTranslatableAttribute($key) && !empty($value)) {
+                $translations = is_array($value) ? $value : [$locale => $value];
+
+                // MERGE with existing translations — never wipe other locales
+                $existing = $product->getTranslations($key);
+                $merged   = array_merge($existing, $translations);
+                $product->setTranslations($key, $merged);
+            }
+        }
+
+        return $product->save();
+    }
+
+    private function filterRow($row)
+    {
+        $rows = [];
+
+        foreach ($row as $key => $value) {
+            $lastUnderscorePos = strrpos($key, "_");
+
+            if ($lastUnderscorePos !== false) {
+                $separatedKeys = [
+                    1 => substr($key, 0, $lastUnderscorePos),
+                    2 => substr($key, $lastUnderscorePos + 1),
+                ];
+
+                if (in_array(head($separatedKeys), $this->translateFields)) {
+                    // Group locale-suffixed fields: name_en, name_ar → name['en'], name['ar']
+                    $rows[head($separatedKeys)][last($separatedKeys)] = $value;
+                } else {
+                    $rows[$key] = $value;
+                }
+            } else {
+                $rows[$key] = $value;
+            }
+        }
+
+        // Remove null and empty string values
+        $filteredRow = array_filter($rows, function ($value) {
+            return !is_null($value) && $value !== '';
+        });
+
+        // Convert string booleans to actual booleans
+        $booleanFields = [
+            'show_stock_quantity', 'is_featured', 'secure_checkout', 'safe_checkout',
+            'social_share', 'encourage_order', 'encourage_view', 'is_cod', 'is_return',
+            'is_free_shipping', 'is_changeable', 'is_sale_enable', 'is_external',
+            'watermark', 'is_licensable', 'is_licensekey_auto', 'status', 'is_trending',
+            'is_random_related_products',
+        ];
+
+        foreach ($booleanFields as $field) {
+            if (isset($filteredRow[$field])) {
+                $filteredRow[$field] = filter_var($filteredRow[$field], FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
+        // Convert numeric fields
+        $numericFields = ['price', 'quantity', 'discount', 'weight', 'shipping_days', 'sale_price'];
+        foreach ($numericFields as $field) {
+            if (isset($filteredRow[$field])) {
+                $filteredRow[$field] = is_numeric($filteredRow[$field])
+                    ? (float) $filteredRow[$field]
+                    : $filteredRow[$field];
+            }
+        }
+
+        return $filteredRow;
+    }
+
     private function handleMediaFiles($product, $row)
     {
         try {
-            // Handle product thumbnail
             if (isset($row['product_thumbnail_url']) && !empty($row['product_thumbnail_url'])) {
                 $this->handleSingleMediaFile($product, $row['product_thumbnail_url'], 'product_thumbnail_id', $row);
             }
-            // Handle product meta image
             if (isset($row['product_meta_image_url']) && !empty($row['product_meta_image_url'])) {
                 $this->handleSingleMediaFile($product, $row['product_meta_image_url'], 'product_meta_image_id');
             }
-            // Handle size chart image
             if (isset($row['size_chart_image_url']) && !empty($row['size_chart_image_url'])) {
                 $this->handleSingleMediaFile($product, $row['size_chart_image_url'], 'size_chart_image_id');
             }
-            // Handle preview audio file
             if (isset($row['preview_audio_file_url']) && !empty($row['preview_audio_file_url'])) {
                 $this->handleSingleMediaFile($product, $row['preview_audio_file_url'], 'preview_audio_file_id');
             }
-            // Handle preview video file
             if (isset($row['preview_video_file_url']) && !empty($row['preview_video_file_url'])) {
                 $this->handleSingleMediaFile($product, $row['preview_video_file_url'], 'preview_video_file_id');
             }
-            // Handle watermark image
             if (isset($row['watermark_image_url']) && !empty($row['watermark_image_url'])) {
                 $this->handleSingleMediaFile($product, $row['watermark_image_url'], 'watermark_image_id');
             }
             $product->save();
         } catch (Exception $e) {
-            // Log the error but don't stop the import
             \Log::error('Media file handling error: ' . $e->getMessage());
         }
     }
+
     private function handleSingleMediaFile($product, $url, $fieldName, $row = null)
     {
         try {
@@ -1907,7 +2821,7 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             $media = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
             $media->save();
             $product->$fieldName = $media->id;
-            // Handle watermark for thumbnail
+
             if ($fieldName === 'product_thumbnail_id' && isset($row['watermark']) && $row['watermark']) {
                 $this->applyWatermark($product, $row);
             }
@@ -1916,6 +2830,7 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             throw $e;
         }
     }
+
     private function applyWatermark($product, $row)
     {
         if (isset($row['watermark_position']) && isset($row['watermark_image_url'])) {
@@ -1925,8 +2840,8 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
                 $product->watermark_image_id = $watermarkMedia->id;
 
                 $watermark_id = $product->watermark_image_id;
-                $file_id = $product->product_thumbnail_id;
-                $position = $row['watermark_position'];
+                $file_id      = $product->product_thumbnail_id;
+                $position     = $row['watermark_position'];
 
                 $product->product_thumbnail_id = Helpers::createWatermarkImage($watermark_id, $file_id, $position);
                 $product->watermark_image()->associate($product->product_thumbnail_id);
@@ -1935,238 +2850,228 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             }
         }
     }
+
     private function handleRelationships($product, $row, $existingProduct)
     {
-        // Handle galleries
         if (isset($row['product_galleries_url']) && !empty($row['product_galleries_url'])) {
             $this->handleGalleries($product, $row, $existingProduct);
         }
-        // Handle digital files
         if (isset($row['digital_files_url']) && !empty($row['digital_files_url'])) {
             $this->handleDigitalFiles($product, $row, $existingProduct);
         }
-        // Handle categories
         if (isset($row['categories']) && !empty($row['categories'])) {
             $categoryIds = explode(',', $row['categories']);
-            if ($existingProduct) {
-                $product->categories()->sync($categoryIds);
-            } else {
-                $product->categories()->attach($categoryIds);
-            }
+            $existingProduct ? $product->categories()->sync($categoryIds) : $product->categories()->attach($categoryIds);
         }
-        // Handle tags
         if (isset($row['tags']) && !empty($row['tags'])) {
             $tagIds = explode(',', $row['tags']);
-            if ($existingProduct) {
-                $product->tags()->sync($tagIds);
-            } else {
-                $product->tags()->attach($tagIds);
-            }
+            $existingProduct ? $product->tags()->sync($tagIds) : $product->tags()->attach($tagIds);
         }
-        // Handle attributes
         if (isset($row['attributes']) && !empty($row['attributes'])) {
             $attributeIds = explode(',', $row['attributes']);
-            if ($existingProduct) {
-                $product->attributes()->sync($attributeIds);
-            } else {
-                $product->attributes()->attach($attributeIds);
-            }
+            $existingProduct ? $product->attributes()->sync($attributeIds) : $product->attributes()->attach($attributeIds);
         }
-        // Handle authors
         if (isset($row['authors_id']) && !empty($row['authors_id'])) {
             $authorIds = is_array($row['authors_id']) ? $row['authors_id'] : explode(',', $row['authors_id']);
-            if ($existingProduct) {
-                $product->authors()->sync($authorIds);
-            } else {
-                $product->authors()->attach($authorIds);
-            }
+            $existingProduct ? $product->authors()->sync($authorIds) : $product->authors()->attach($authorIds);
         }
     }
+
     private function handleGalleries($product, $row, $existingProduct)
     {
         try {
             $galleryUrls = explode(',', $row['product_galleries_url']);
-            $galleryIds = [];
+            $galleryIds  = [];
 
             foreach ($galleryUrls as $url) {
                 $url = trim($url);
                 if (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
-                    $media = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
+                    $media        = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
                     $media->save();
                     $galleryIds[] = $media->id;
                 }
             }
             if (!empty($galleryIds)) {
-                if ($existingProduct) {
-                    $product->product_galleries()->sync($galleryIds);
-                } else {
-                    $product->product_galleries()->attach($galleryIds);
-                }
+                $existingProduct
+                    ? $product->product_galleries()->sync($galleryIds)
+                    : $product->product_galleries()->attach($galleryIds);
             }
         } catch (Exception $e) {
             \Log::error('Gallery handling error: ' . $e->getMessage());
         }
     }
+
     private function handleDigitalFiles($product, $row, $existingProduct)
     {
         try {
             $digitalFileUrls = explode(',', $row['digital_files_url']);
-            $digitalFileIds = [];
+            $digitalFileIds  = [];
 
             foreach ($digitalFileUrls as $url) {
                 $url = trim($url);
                 if (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
-                    $media = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
+                    $media            = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
                     $media->save();
                     $digitalFileIds[] = $media->id;
                 }
             }
             if (!empty($digitalFileIds)) {
-                if ($existingProduct) {
-                    $product->digital_files()->sync($digitalFileIds);
-                } else {
-                    $product->digital_files()->attach($digitalFileIds);
-                }
+                $existingProduct
+                    ? $product->digital_files()->sync($digitalFileIds)
+                    : $product->digital_files()->attach($digitalFileIds);
             }
         } catch (Exception $e) {
             \Log::error('Digital files handling error: ' . $e->getMessage());
         }
     }
+
     private function handleVariations($product, $row, $existingProduct)
     {
         $variations = json_decode($row['variations']);
         if (is_array($variations)) {
-            // For updates, delete existing variations first
             if ($existingProduct) {
                 $product->variations()->delete();
             }
-
             foreach ($variations as $variation) {
                 $this->createProductVariation($product, $variation);
             }
         }
     }
+
     private function shouldHandleLicenseKeys($product, $row)
     {
-        return (isset($row['type']) && $row['type'] == 'simple' && isset($row['product_type']) && $row['product_type'] == 'digital') &&
-               ($row['is_licensekey_auto'] == '0' && $row['is_licensable'] == '1') &&
-               (!empty($row['license_keys']) && !empty($row['separator']));
+        return (isset($row['type']) && $row['type'] == 'simple'
+            && isset($row['product_type']) && $row['product_type'] == 'digital')
+            && ($row['is_licensekey_auto'] == '0' && $row['is_licensable'] == '1')
+            && (!empty($row['license_keys']) && !empty($row['separator']));
     }
-    // ... (keep all the existing helper methods: getVariationSKU, updateOrCreateWholesaleProduct, 
-    // updateOrCreateProductLicenseKeys, getUniqueLicenseKey, createProductVariation, etc.)
+
     public function getVariationSKU($sku)
     {
         $i = 1;
         do {
-            $sku = $sku.str_repeat(' (COPY)', $i++);
+            $sku = $sku . str_repeat(' (COPY)', $i++);
         } while (Variation::where('sku', $sku)->whereNull('deleted_at')->exists());
         return $sku;
     }
+
     public function updateOrCreateWholesaleProduct($product, $wholesalePrices)
     {
         $wholesaleIds = [];
         if (is_array($wholesalePrices)) {
             foreach ($wholesalePrices as $wholesalePrice) {
-                $wholesale = $product->wholesales()->updateOrCreate(['id' => $wholesalePrice['id'] ?? null], [
-                    'min_qty' => $wholesalePrice['min_qty'],
-                    'max_qty' => $wholesalePrice['max_qty'],
-                    'value' =>  $wholesalePrice['value'],
-                ]);
+                $wholesale = $product->wholesales()->updateOrCreate(
+                    ['id' => $wholesalePrice['id'] ?? null],
+                    [
+                        'min_qty' => $wholesalePrice['min_qty'],
+                        'max_qty' => $wholesalePrice['max_qty'],
+                        'value'   => $wholesalePrice['value'],
+                    ]
+                );
                 $wholesaleIds[] = $wholesale?->id;
             }
             $product->wholesales()->whereNotIn('id', $wholesaleIds)?->delete();
             return $product;
         }
     }
+
     public function updateOrCreateProductLicenseKeys($product, $license_keys, $variation_id = null)
     {
         $licenseKeyIds = [];
         if (is_array($license_keys)) {
             foreach ($license_keys as $license_key) {
-                $licenseKey = $product->license_keys()->updateOrCreate(['license_key' => $license_key], [
-                    'license_key' => $this->getUniqueLicenseKey($license_key),
-                    'variation_id' => $variation_id,
-                    'status' => 1,
-                ]);
+                $licenseKey = $product->license_keys()->updateOrCreate(
+                    ['license_key' => $license_key],
+                    [
+                        'license_key'  => $this->getUniqueLicenseKey($license_key),
+                        'variation_id' => $variation_id,
+                        'status'       => 1,
+                    ]
+                );
                 $licenseKeyIds[] = $licenseKey?->id;
             }
-            $product->license_keys()->whereNotIn('id', $licenseKeyIds)->where('variation_id', $variation_id)?->delete();
+            $product->license_keys()
+                ->whereNotIn('id', $licenseKeyIds)
+                ->where('variation_id', $variation_id)
+                ?->delete();
             return $product;
         }
     }
+
     public function getUniqueLicenseKey($license_key)
     {
-        $i = 1;
+        $i           = 1;
         $originalKey = $license_key;
-
         do {
             $license_key = $originalKey . str_repeat(' (COPY)', $i++);
         } while (LicenseKey::where('license_key', $license_key)->whereNull('deleted_at')->exists());
         return $license_key;
     }
+
     public function createProductVariation($product, $variation)
     {
         $stock_status = StockStatus::OUT_OF_STOCK;
         if (isset($variation->quantity) && $variation->quantity > 0) {
             $stock_status = StockStatus::IN_STOCK;
         }
+
         $sale_price = null;
         if (isset($variation->discount) && $variation->discount > 0) {
             $sale_price = round($variation->price - (($variation->price * $variation->discount) / 100), 2);
         }
-        // Handle multilingual variation name
+
         $currentLocale = app()->getLocale();
         $variationName = 'Default Variation';
-
         if (isset($variation->{'name' . $currentLocale})) {
             $variationName = $variation->{'name' . $currentLocale};
         } elseif (isset($variation->name)) {
             $variationName = $variation->name;
         }
+
         $variationData = [
-            'name' => $variationName,
-            'price' => $variation->price ?? 0,
-            'sale_price' => $sale_price,
-            'discount' => $variation->discount ?? 0,
-            'quantity' => $variation->quantity ?? 0,
-            'sku' => $this->getVariationSKU($variation->sku ?? 'VAR-' . uniqid()),
+            'name'         => $variationName,
+            'price'        => $variation->price ?? 0,
+            'sale_price'   => $sale_price,
+            'discount'     => $variation->discount ?? 0,
+            'quantity'     => $variation->quantity ?? 0,
+            'sku'          => $this->getVariationSKU($variation->sku ?? 'VAR-' . uniqid()),
             'stock_status' => $stock_status,
-            'status' => $variation->status ?? 1,
-            'is_default' => $variation->is_default ?? 0,
+            'status'       => $variation->status ?? 1,
+            'is_default'   => $variation->is_default ?? 0,
         ];
+
         $productVariation = $product->variations()->create($variationData);
-        // Handle variation relationships with error handling
+
         try {
-            // Handle variation attributes
             if (isset($variation->attribute_values) && !empty($variation->attribute_values)) {
                 $productVariation->attribute_values()->attach(explode(',', $variation->attribute_values));
             }
-            // Handle variation image
             if (isset($variation->variation_image_url) && !empty($variation->variation_image_url)) {
                 $this->handleVariationMedia($product, $productVariation, $variation->variation_image_url, 'variation_image_id');
             }
-            // Handle variation galleries
             if (isset($variation->variation_galleries_url) && !empty($variation->variation_galleries_url)) {
                 $this->handleVariationGalleries($product, $productVariation, $variation->variation_galleries_url);
             }
-            // Handle variation digital files
             if (isset($variation->variation_digital_files_url) && !empty($variation->variation_digital_files_url)) {
                 $this->handleVariationDigitalFiles($product, $productVariation, $variation->variation_digital_files_url);
             }
-            // Handle variation license keys
-            if (isset($variation->license_keys) && !empty($variation->license_keys) && 
-                isset($variation->separator) && !empty($variation->separator) &&
-                $product->product_type == 'digital' && $product->is_licensable == 1 && $product->is_licensekey_auto == 0) {
-
+            if (isset($variation->license_keys) && !empty($variation->license_keys)
+                && isset($variation->separator) && !empty($variation->separator)
+                && $product->product_type == 'digital'
+                && $product->is_licensable == 1
+                && $product->is_licensekey_auto == 0
+            ) {
                 $license_keys = Helpers::explodeLicenseKeys($variation->separator, $variation->license_keys);
                 $this->updateOrCreateProductLicenseKeys($product, $license_keys, $productVariation->id);
             }
         } catch (Exception $e) {
             \Log::error('Variation media handling error: ' . $e->getMessage());
         }
+
         return $productVariation;
     }
-   private function handleVariationMedia($product, $variation, $url, $fieldName)
+
+    private function handleVariationMedia($product, $variation, $url, $fieldName)
     {
         try {
             if (filter_var($url, FILTER_VALIDATE_URL)) {
@@ -2183,18 +3088,17 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     private function handleVariationGalleries($product, $variation, $galleryUrls)
     {
         try {
-            $urls = explode(',', $galleryUrls);
+            $urls       = explode(',', $galleryUrls);
             $galleryIds = [];
-            
+
             foreach ($urls as $url) {
                 $url = trim($url);
                 if (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
-                    $media = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
+                    $media        = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
                     $media->save();
                     $galleryIds[] = $media->id;
                 }
             }
-            
             if (!empty($galleryIds)) {
                 $variation->variation_galleries()->attach($galleryIds);
             }
@@ -2206,18 +3110,17 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     private function handleVariationDigitalFiles($product, $variation, $digitalFileUrls)
     {
         try {
-            $urls = explode(',', $digitalFileUrls);
+            $urls           = explode(',', $digitalFileUrls);
             $digitalFileIds = [];
-            
+
             foreach ($urls as $url) {
                 $url = trim($url);
                 if (!empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
-                    $media = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
+                    $media            = $product->addMediaFromUrl($url)->toMediaCollection('attachment');
                     $media->save();
                     $digitalFileIds[] = $media->id;
                 }
             }
-            
             if (!empty($digitalFileIds)) {
                 $variation->variation_digital_files()->attach($digitalFileIds);
             }
@@ -2226,141 +3129,20 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
         }
     }
 
-  private function filterRow($row)
-{
-    $rows = [];
-    
-    foreach ($row as $key => $value) {
-        $lastUnderscorePos = strrpos($key, "_");
-        
-        if ($lastUnderscorePos !== false) {
-            $separatedKeys = [
-                1 => substr($key, 0, $lastUnderscorePos),
-                2 => substr($key, $lastUnderscorePos + 1),
-            ];
-            
-            if (in_array(head($separatedKeys), $this->translateFields)) {
-                $rows[head($separatedKeys)][last($separatedKeys)] = $value;
-            } else {
-                $rows[$key] = $value;
-            }
-        } else {
-            $rows[$key] = $value;
-        }
-    }
-    
-    // Remove empty values and normalize data
-    $filteredRow = array_filter($rows, function($value) {
-        return !is_null($value) && $value !== '';
-    });
-    
-    // Convert string booleans to actual booleans
-    $booleanFields = [
-        'show_stock_quantity', 'is_featured', 'secure_checkout', 'safe_checkout',
-        'social_share', 'encourage_order', 'encourage_view', 'is_cod', 'is_return',
-        'is_free_shipping', 'is_changeable', 'is_sale_enable', 'is_external',
-        'watermark', 'is_licensable', 'is_licensekey_auto', 'status', 'is_trending',
-        'is_random_related_products'
-    ];
-    
-    foreach ($booleanFields as $field) {
-        if (isset($filteredRow[$field])) {
-            $filteredRow[$field] = filter_var($filteredRow[$field], FILTER_VALIDATE_BOOLEAN);
-        }
-    }
-    
-    // Convert numeric fields
-    $numericFields = ['price', 'quantity', 'discount', 'weight', 'shipping_days' , 'sale_price'];
-    foreach ($numericFields as $field) {
-        if (isset($filteredRow[$field])) {
-            $filteredRow[$field] = is_numeric($filteredRow[$field]) ? 
-                (float)$filteredRow[$field] : $filteredRow[$field];
-        }
-    }
-    
-    return $filteredRow;
-}
-
-// private function setTranslations($product, $row)
-// {
-//     $locale = app()->getLocale();
-    
-//     foreach ($row as $key => $value) {
-//         if ($product->isTranslatableAttribute($key)) {
-//             $translations = is_array($value) ? $value : [$locale => $value];
-//             $product->setTranslations($key, $translations);
-//         }
-//     }
-    
-//     return $product->save();
-// }
-private function setTranslations($product, $row)
-{
-    $locale = app()->getLocale();
-    
-    foreach ($row as $key => $value) {
-        // Only update translations if field is present AND non-empty
-        if ($product->isTranslatableAttribute($key) && !empty($value)) {
-            $translations = is_array($value) ? $value : [$locale => $value];
-            
-            // MERGE with existing translations, don't overwrite
-            $existing = $product->getTranslations($key);
-            $merged = array_merge($existing, $translations);
-            $product->setTranslations($key, $merged);
-        }
-    }
-    
-    return $product->save();
-}
-
-    // private function filterRow($row)
-    // {
-    //     // Remove empty values and normalize data
-    //     $filteredRow = array_filter($row, function($value) {
-    //         return !is_null($value) && $value !== '';
-    //     });
-        
-    //     // Convert string booleans to actual booleans
-    //     $booleanFields = [
-    //         'show_stock_quantity', 'is_featured', 'secure_checkout', 'safe_checkout',
-    //         'social_share', 'encourage_order', 'encourage_view', 'is_cod', 'is_return',
-    //         'is_free_shipping', 'is_changeable', 'is_sale_enable', 'is_external',
-    //         'watermark', 'is_licensable', 'is_licensekey_auto', 'status', 'is_trending',
-    //         'is_random_related_products'
-    //     ];
-        
-    //     foreach ($booleanFields as $field) {
-    //         if (isset($filteredRow[$field])) {
-    //             $filteredRow[$field] = filter_var($filteredRow[$field], FILTER_VALIDATE_BOOLEAN);
-    //         }
-    //     }
-        
-    //     // Convert numeric fields
-    //     $numericFields = ['price', 'quantity', 'discount', 'weight', 'shipping_days'];
-    //     foreach ($numericFields as $field) {
-    //         if (isset($filteredRow[$field])) {
-    //             $filteredRow[$field] = is_numeric($filteredRow[$field]) ? 
-    //                 (float)$filteredRow[$field] : $filteredRow[$field];
-    //         }
-    //     }
-        
-    //     return $filteredRow;
-    // }
-
     private function formatProductResponse($product)
     {
         return [
-            'id' => $product->id,
-            'name' => $product->name,
-            'sku' => $product->sku,
-            'price' => $product->price,
-            'sale_price' => $product->sale_price,
-            'quantity' => $product->quantity,
-            'stock_status' => $product->stock_status,
+            'id'          => $product->id,
+            'name'        => $product->name,
+            'sku'         => $product->sku,
+            'price'       => $product->price,
+            'sale_price'  => $product->sale_price,
+            'quantity'    => $product->quantity,
+            'stock_status'=> $product->stock_status,
             'is_approved' => $product->is_approved,
-            'status' => $product->status,
-            'created_at' => $product->created_at,
-            'updated_at' => $product->updated_at,
+            'status'      => $product->status,
+            'created_at'  => $product->created_at,
+            'updated_at'  => $product->updated_at,
         ];
     }
 }
