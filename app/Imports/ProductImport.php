@@ -2281,14 +2281,32 @@ class ProductImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     return $filteredRow;
 }
 
+// private function setTranslations($product, $row)
+// {
+//     $locale = app()->getLocale();
+    
+//     foreach ($row as $key => $value) {
+//         if ($product->isTranslatableAttribute($key)) {
+//             $translations = is_array($value) ? $value : [$locale => $value];
+//             $product->setTranslations($key, $translations);
+//         }
+//     }
+    
+//     return $product->save();
+// }
 private function setTranslations($product, $row)
 {
     $locale = app()->getLocale();
     
     foreach ($row as $key => $value) {
-        if ($product->isTranslatableAttribute($key)) {
+        // Only update translations if field is present AND non-empty
+        if ($product->isTranslatableAttribute($key) && !empty($value)) {
             $translations = is_array($value) ? $value : [$locale => $value];
-            $product->setTranslations($key, $translations);
+            
+            // MERGE with existing translations, don't overwrite
+            $existing = $product->getTranslations($key);
+            $merged = array_merge($existing, $translations);
+            $product->setTranslations($key, $merged);
         }
     }
     
