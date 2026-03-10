@@ -140,7 +140,7 @@ class PageRepository extends BaseRepository
         }
     }
 
-    public function getPagesBySlug($slug)
+    public function getPageBySlug($slug)
     {
         try {
 
