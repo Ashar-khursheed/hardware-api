@@ -434,6 +434,16 @@ public function importStatus(Request $request)
             });
         }
 
+        if ($request->search) {
+            $product = $product->where(function ($query) use ($request) {
+                $query->where('name', 'like', '%' . $request->search . '%')
+                    ->orWhere('sku', 'like', '%' . $request->search . '%')
+                    ->orWhereHas('variations', function ($query) use ($request) {
+                        $query->where('sku', 'like', '%' . $request->search . '%');
+                    });
+            });
+        }
+
         return $product->with([
             'store:id,store_name,slug',
             'product_thumbnail:id,name,disk,file_name,mime_type',
