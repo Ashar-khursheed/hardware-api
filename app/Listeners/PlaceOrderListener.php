@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Notifications\PlaceOrderNotification;
 use Exception;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\Notification;
 
 class PlaceOrderListener implements ShouldQueue
 {
@@ -22,29 +23,47 @@ class PlaceOrderListener implements ShouldQueue
     public function handle(PlaceOrderEvent $event)
     {
         try {
-
-            if ($event->order->consumer_id && is_null($event->order->parent_id)) {
-                $consumer = Helpers::getConsumerById($event->order->consumer_id);
-                if ($consumer) {
-                    $consumer->notify(new PlaceOrderNotification($event->order, RoleEnum::CONSUMER));
+            // Consumer Notification
+            if (is_null($event->order->parent_id)) {
+                if ($event->order->consumer_id) {
+                    $consumer = Helpers::getConsumerById($event->order->consumer_id);
+                    if ($consumer) {
+                        $consumer->notify(new PlaceOrderNotification($event->order, RoleEnum::CONSUMER));
+                    }
+                } else if ($event->order->is_guest && isset($event->order->consumer['email'])) {
+                    Notification::route('mail', $event->order->consumer['email'])
+                        ->notify(new PlaceOrderNotification($event->order, RoleEnum::CONSUMER));
                 }
             }
 
+            // Vendor Notification
             foreach ($event->order->sub_orders as $sub_order) {
                 if (isset($sub_order->store_id)) {
                     $vendor = Helpers::getStoreById($sub_order->store_id)?->vendor;
-                    $vendor->notify(new PlaceOrderNotification($sub_order, RoleEnum::VENDOR));
+                    if ($vendor) {
+                        $vendor->notify(new PlaceOrderNotification($sub_order, RoleEnum::VENDOR));
+                    }
                 }
             }
 
-            $admin = User::role(RoleEnum::ADMIN)->first();
-            if (isset($admin)) {
-                $admin->notify(new PlaceOrderNotification($event->order, RoleEnum::ADMIN));
+            // Admin Notification
+            $admins = User::role(RoleEnum::ADMIN)->get();
+            if ($admins->isNotEmpty()) {
+                foreach ($admins as $admin) {
+                   $admin->notify(new PlaceOrderNotification($event->order, RoleEnum::ADMIN));
+                }
+            } else {
+                // Fallback to settings email or a hardcoded one if no admin role found
+                $settings = Helpers::getSettings();
+                $adminEmail = $settings['general']['admin_email'] ?? null;
+                if ($adminEmail) {
+                    Notification::route('mail', $adminEmail)
+                        ->notify(new PlaceOrderNotification($event->order, RoleEnum::ADMIN));
+                }
             }
 
         } catch (Exception $e) {
-
-            //
+            \Log::error('PlaceOrderListener error: ' . $e->getMessage());
         }
     }
 }

@@ -102,21 +102,24 @@ class PlaceOrderNotification extends Notification
 
         $invoice = PDF::loadView('emails.invoice', $invoiceData);
 
+        $consumerName = "Customer";
         if ($this->order?->consumer_id) {
             $consumer = Helpers::getConsumerById($this->order?->consumer_id);
-            if ($consumer) {
-                return (new MailMessage)
-                    ->subject("Your Order #{$this->order?->order_number} Confirmation")
-                    ->greeting("Hello {$consumer?->name},")
-                    ->line("We're excited to confirm your order with Order #{$this->order?->order_number}.")
-                    ->line("Order Payment Status: {$this->order?->payment_status}")
-                    ->line("Order Status: {$this->order?->order_status?->name}")
-                    ->line("Thank you for choosing us for your shopping needs.")
-                    ->attachData($invoice?->output(), "invoice-{$this->order?->order_number}.pdf", [
-                        'mime' => 'application/pdf',
-                    ]);
-            }
+            $consumerName = $consumer?->name;
+        } else if ($this->order->is_guest && isset($this->order->consumer['name'])) {
+            $consumerName = $this->order->consumer['name'];
         }
+
+        return (new MailMessage)
+            ->subject("Your Order #{$this->order?->order_number} Confirmation")
+            ->greeting("Hello {$consumerName},")
+            ->line("We're excited to confirm your order with Order #{$this->order?->order_number}.")
+            ->line("Order Payment Status: {$this->order?->payment_status}")
+            ->line("Order Status: {$this->order?->order_status?->name}")
+            ->line("Thank you for choosing us for your shopping needs.")
+            ->attachData($invoice?->output(), "invoice-{$this->order?->order_number}.pdf", [
+                'mime' => 'application/pdf',
+            ]);
     }
 
     /**
