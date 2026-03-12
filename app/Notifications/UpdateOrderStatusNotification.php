@@ -39,18 +39,24 @@ class UpdateOrderStatusNotification extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $consumerName = "Customer";
         if ($this->order->consumer_id) {
             $consumer = Helpers::getConsumerById($this->order?->consumer_id);
             if ($consumer) {
-                return (new MailMessage)
-                    ->subject("Order ID: #{$this->order?->order_number} has been {$this->order?->order_status?->name}")
-                    ->greeting("Hello {$consumer->name},")
-                    ->line("We wanted to provide you with an update regarding your recent order, ID. #{$this->order?->order_number}.")
-                    ->line("Your order status has been updated to {$this->order?->order_status?->name}. ")
-                    ->line('Please feel free to reach out to us if you have any questions or need assistance.')
-                    ->line('Thank you for choosing us for your shopping experience. We value your trust and support!');
+                $consumerName = $consumer->name;
             }
+        } else if ($this->order->is_guest && isset($this->order->consumer['name'])) {
+            $consumerName = $this->order->consumer['name'];
         }
+
+        return (new MailMessage)
+            ->subject("Order ID: #{$this->order?->order_number} has been {$this->order?->order_status?->name}")
+            ->greeting("Hello {$consumerName},")
+            ->line("We wanted to provide you with an update regarding your recent order, ID. #{$this->order?->order_number}.")
+            ->line("Your order status has been updated to {$this->order?->order_status?->name}. ")
+            ->line('Please feel free to reach out to us if you have any questions or need assistance.')
+            ->line('Thank you for choosing us for your shopping experience. We value your trust and support!')
+            ->bcc('admin@thehardwarebox.com');
     }
 
     /**

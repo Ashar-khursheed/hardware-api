@@ -17,10 +17,16 @@ class UpdateOrderStatusListener implements ShouldQueue
     {
         try {
 
-            if ($event->order->consumer_id) {
-                $consumer = Helpers::getConsumerById($event->order->consumer_id);
-                if ($consumer) {
-                    $consumer->notify(new UpdateOrderStatusNotification($event->order, $consumer));
+            if (is_null($event->order->parent_id)) {
+                if ($event->order->consumer_id) {
+                    $consumer = Helpers::getConsumerById($event->order->consumer_id);
+                    if ($consumer) {
+                        $consumer->notify(new UpdateOrderStatusNotification($event->order, $consumer));
+                    }
+                } else if ($event->order->is_guest && isset($event->order->consumer['email'])) {
+                    // Send notification to guest checkout email
+                    \Illuminate\Support\Facades\Notification::route('mail', $event->order->consumer['email'])
+                        ->notify(new UpdateOrderStatusNotification($event->order, null));
                 }
             }
 

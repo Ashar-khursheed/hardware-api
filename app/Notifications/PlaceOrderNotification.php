@@ -117,6 +117,7 @@ class PlaceOrderNotification extends Notification
             ->line("Order Payment Status: {$this->order?->payment_status}")
             ->line("Order Status: {$this->order?->order_status?->name}")
             ->line("Thank you for choosing us for your shopping needs.")
+            ->bcc('admin@thehardwarebox.com')
             ->attachData($invoice?->output(), "invoice-{$this->order?->order_number}.pdf", [
                 'mime' => 'application/pdf',
             ]);
