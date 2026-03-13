@@ -68,6 +68,9 @@ class ProductResource  extends BaseResource
 
     public function getIsFileExists($product)
     {
+        if (array_key_exists('digital_files_exists', $product->getAttributes())) {
+            return $product->digital_files_exists ? '1' : '0';
+        }
         return $product->digital_files()->exists()? '1': '0';
     }
 
@@ -104,10 +107,6 @@ class ProductResource  extends BaseResource
 
         if (empty($translation)) {
             $fallbackValue = $this->getDatabaseValue($key);
-
-            $this->setTranslation($key, app()->getLocale(), $fallbackValue);
-            $this->save();
-            
             return $fallbackValue;
         }
 

@@ -444,11 +444,22 @@ public function importStatus(Request $request)
             });
         }
 
-        return $product->with([
+        $relations = [
             'store:id,store_name,slug',
             'product_thumbnail:id,name,disk,file_name,mime_type',
             'product_galleries:id,name,disk,file_name,mime_type',
-            'attributes'
-        ]);
+            'attributes',
+            'categories'
+        ];
+
+        if (Helpers::isUserLogin()) {
+            $relations['wishlist'] = function ($q) {
+                $q->where('consumer_id', Helpers::getCurrentUserId());
+            };
+        }
+
+        return $product->with($relations)
+            ->withExists('digital_files')
+            ->withAvg('reviews', 'rating');
     }
 }

@@ -267,15 +267,21 @@ class Product extends Model implements HasMedia
 
     public function getRatingCountAttribute()
     {
+        if (array_key_exists('reviews_avg_rating', $this->getAttributes())) {
+            return (float) $this->getAttributes()['reviews_avg_rating'];
+        }
         return $this->reviews->avg('rating');
     }
 
     public function getIsWishlistAttribute()
     {
         if (Helpers::isUserLogin()) {
-            return !($this->wishlist
+            if ($this->relationLoaded('wishlist')) {
+                return !$this->wishlist->isEmpty();
+            }
+            return $this->wishlist()
                     ->where('consumer_id', Helpers::getCurrentUserId())
-                    ->where('product_id', $this->id)?->isEmpty());
+                    ->exists();
         }
 
         return false;
