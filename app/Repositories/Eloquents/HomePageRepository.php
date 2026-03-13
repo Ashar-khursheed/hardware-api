@@ -22,6 +22,10 @@ class HomePageRepository extends BaseRepository
         try {
 
             $homePage = $this->model->findOrFail($id);
+            if (isset($request['content']) && is_array($request['content'])) {
+                $homePage->setTranslation('content', app()->getLocale(), $request['content']);
+                unset($request['content']);
+            }
             $homePage->update($request);
 
             DB::commit();
