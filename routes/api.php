@@ -167,6 +167,10 @@ Route::apiResource('subscribe', 'App\Http\Controllers\SubscribeController',[
 // Reviews
 Route::get('front/review', 'App\Http\Controllers\ReviewController@frontIndex');
 
+// Bulk Quote (Public — no auth required)
+use App\Http\Controllers\Api\BulkQuoteController;
+Route::post('/bulk-quote', [BulkQuoteController::class, 'store']);
+
 // ContactUs
 Route::post('/contact-us', 'App\Http\Controllers\ContactUsController@contactUs');
 
