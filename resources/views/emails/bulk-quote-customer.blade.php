@@ -122,7 +122,13 @@
       @endif
       @if($quote->urgency)
       @php
-        $labels = ['asap'=>'ASAP (1–3 days)','week'=>'Within a week','month'=>'Within a month','flexible'=>'Flexible'];
+        $labels = [
+            'asap'     => 'ASAP (1–3 days)',
+            'week'     => 'Within a week',
+            'month'    => 'Within a month',
+            'flexible' => 'Flexible',
+            'future'   => 'Future Project'
+        ];
       @endphp
       <div class="s-row">
         <span class="lbl">Urgency</span>

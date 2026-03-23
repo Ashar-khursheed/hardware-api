@@ -20,7 +20,7 @@ class BulkQuoteRequest extends FormRequest
             'phone'       => 'required|string|max:30',
             'part_number' => 'required|string|max:255',
             'quantity'    => 'required|string|max:50',
-            'urgency'     => 'nullable|in:asap,week,month,flexible',
+            'urgency'     => 'nullable|in:asap,week,month,flexible,future',
             'description' => 'nullable|string|max:2000',
         ];
     }

@@ -126,7 +126,13 @@
         <div class="lbl">Urgency</div>
         <div class="val">
           @php
-            $labels = ['asap'=>'ASAP (1–3 days)','week'=>'Within a week','month'=>'Within a month','flexible'=>'Flexible'];
+            $labels = [
+                'asap'     => 'ASAP (1–3 days)',
+                'week'     => 'Within a week',
+                'month'    => 'Within a month',
+                'flexible' => 'Flexible',
+                'future'   => 'Future Project'
+            ];
           @endphp
           {{ $labels[$quote->urgency] ?? 'Not specified' }}
         </div>
