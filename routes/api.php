@@ -174,6 +174,9 @@ Route::post('/bulk-quote', [BulkQuoteController::class, 'store']);
 // ContactUs
 Route::post('/contact-us', 'App\Http\Controllers\ContactUsController@contactUs');
 
+// Sitemap Data
+Route::get('/sitemap', 'App\Http\Controllers\SitemapController@getData');
+
 // Checkout
 Route::post('checkout','App\Http\Controllers\CheckoutController@verifyCheckout');
 

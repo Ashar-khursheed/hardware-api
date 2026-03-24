@@ -91,4 +91,73 @@ class SitemapController extends Controller
             'Content-Type' => 'application/xml'
         ]);
     }
+
+    /**
+     * Get sitemap data in JSON format for frontend consumption.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getData()
+    {
+        $frontendUrl = rtrim(env('FRONTEND_URL', config('app.url')), '/');
+        $data = [];
+
+        // 1. Home
+        $data[] = ['url' => $frontendUrl . '/', 'priority' => 1.0, 'changefreq' => 'daily'];
+
+        // 2. Products
+        $products = Product::where('status', 1)->get(['slug', 'updated_at']);
+        foreach ($products as $product) {
+            $data[] = [
+                'url' => $frontendUrl . '/product/' . $product->slug,
+                'lastmod' => $product->updated_at->toAtomString(),
+                'priority' => 0.8,
+                'changefreq' => 'weekly'
+            ];
+        }
+
+        // 3. Categories
+        $categories = Category::where('status', 1)->get(['slug']);
+        foreach ($categories as $category) {
+            $data[] = [
+                'url' => $frontendUrl . '/category/' . $category->slug,
+                'priority' => 0.7,
+                'changefreq' => 'weekly'
+            ];
+        }
+
+        // 4. Brands
+        $brands = Brand::where('status', 1)->get(['slug']);
+        foreach ($brands as $brand) {
+            $data[] = [
+                'url' => $frontendUrl . '/brand/' . $brand->slug,
+                'priority' => 0.6,
+                'changefreq' => 'weekly'
+            ];
+        }
+
+        // 5. Blogs
+        $blogs = Blog::where('status', 1)->get(['slug', 'updated_at']);
+        foreach ($blogs as $blog) {
+            $data[] = [
+                'url' => $frontendUrl . '/blog/' . $blog->slug,
+                'lastmod' => $blog->updated_at->toAtomString(),
+                'priority' => 0.5,
+                'changefreq' => 'weekly'
+            ];
+        }
+
+        // 6. Pages
+        $pages = Page::where('status', 1)->get(['slug', 'updated_at']);
+        foreach ($pages as $page) {
+            $data[] = [
+                'url' => $frontendUrl . '/page/' . $page->slug,
+                'lastmod' => $page->updated_at->toAtomString(),
+                'priority' => 0.4,
+                'changefreq' => 'monthly'
+            ];
+        }
+
+        return response()->json($data);
+    }
 }
