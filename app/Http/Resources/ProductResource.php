@@ -56,7 +56,12 @@ class ProductResource  extends BaseResource
             'created_at' => $this->created_at,
             'is_file' => $this->getIsFileExists($this),
             'store' => $this->getStoreAttributes(),
-            'categories' => $this->categories,
+            'categories' => $this->categories->map(fn($cat) => [
+                'id'        => $cat->id,
+                'name'      => $cat->name,
+                'slug'      => $cat->slug,
+                'parent_id' => $cat->parent_id,
+            ]),
             'reviews_count' => $this->reviews_count,
             'rating_count' => $this->rating_count,
             'orders_count'  => $this->orders_count,

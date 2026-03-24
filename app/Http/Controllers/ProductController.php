@@ -47,18 +47,22 @@ public function importStatus(Request $request)
      * @return \Illuminate\Http\Response
      */
     public function index(Request $request)
-    {
-        try {
+{
+    try {
+        // Cache key — sab params se unique
+        $cacheKey = 'products_' . md5(json_encode($request->all()));
 
+        $products = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request) {
             $product = $this->filter($this->repository, $request);
-            $products = $product->latest('created_at')->paginate($request->paginate);
-            return ProductResource::collection($products);
+            return $product->latest('created_at')->paginate($request->paginate);
+        });
 
-        } catch (Exception $e) {
+        return ProductResource::collection($products);
 
-            throw new ExceptionHandler($e->getMessage(), $e->getCode());
-        }
+    } catch (Exception $e) {
+        throw new ExceptionHandler($e->getMessage(), $e->getCode());
     }
+}
 
     /**
      * Show the form for creating a new resource.
@@ -240,7 +244,7 @@ public function importStatus(Request $request)
             });
         }
 
-        if ($request->rating) {
+        if ($request->filled('rating')) {
             $ratings = explode(',', $request->rating);
             $product = $this->getProductByRating($ratings, $product);
         }
@@ -253,7 +257,7 @@ public function importStatus(Request $request)
             $product = $product->whereBetween('sale_price', [$request->min, $request->max]);
         }
 
-        if ($request->category) {
+        if ($request->filled('category')) {
             $slugs = explode(',', $request->category);
             $product = $product->whereHas('categories', function (Builder $categories) use($slugs) {
                 $categories->WhereIn('slug', $slugs);
@@ -281,7 +285,7 @@ public function importStatus(Request $request)
             });
         }
 
-        if ($request->brand) {
+if ($request->filled('brand')) {
             $slugs = explode(',', $request->brand);
             $product = $product->whereHas('brand', function (Builder $brands) use ($slugs) {
                 $brands->where('slug', $slugs);
@@ -350,7 +354,7 @@ public function importStatus(Request $request)
             });
         }
 
-        if ($request->attribute) {
+        if ($request->filled('attribute')) {
             $slugs = explode(',', $request->attribute);
             $product = $product->whereHas('variations', function (Builder $attributes) use($slugs) {
                 $attributes->whereHas('attribute_values', function (Builder $attributeValues) use ($slugs) {
@@ -359,7 +363,7 @@ public function importStatus(Request $request)
             });
         }
 
-        if ($request->price) {
+        if ($request->filled('price')) {
             $ranges = explode(',', $request->price);
             foreach($ranges as $range) {
                 $values = explode('-', $range);
@@ -434,7 +438,7 @@ public function importStatus(Request $request)
             });
         }
 
-        if ($request->search) {
+        if ($request->filled('search')) {
             $product = $product->where(function ($query) use ($request) {
                 $query->where('name', 'like', '%' . $request->search . '%')
                     ->orWhere('sku', 'like', '%' . $request->search . '%')
@@ -445,21 +449,31 @@ public function importStatus(Request $request)
         }
 
         $relations = [
-            'store:id,store_name,slug',
-            'product_thumbnail:id,name,disk,file_name,mime_type',
-            'product_galleries:id,name,disk,file_name,mime_type',
-            'attributes',
-            'categories'
-        ];
+    'store:id,store_name,slug',
+    'product_thumbnail:id,name,disk,file_name,mime_type',
+    'product_galleries:id,name,disk,file_name,mime_type',
+    'attributes:id,name,slug',
+    'categories:id,name,slug,parent_id,status',  // sirf ye fields
+    'brand:id,name,slug,status',
+];
 
-        if (Helpers::isUserLogin()) {
-            $relations['wishlist'] = function ($q) {
-                $q->where('consumer_id', Helpers::getCurrentUserId());
-            };
-        }
+       if (Helpers::isUserLogin()) {
+    $relations['wishlist'] = function ($q) {
+        $q->where('consumer_id', Helpers::getCurrentUserId());
+    };
+}
 
-        return $product->with($relations)
-            ->withExists('digital_files')
-            ->withAvg('reviews', 'rating');
-    }
+return $product->with($relations)
+    ->withExists('digital_files')
+    ->withAvg('reviews', 'rating')
+    ->select([   // <-- sirf zaruri product columns
+        'id','name','short_description','type','unit',
+        'quantity','price','sale_price','discount',
+        'is_featured','is_digital','product_type',
+        'is_sale_enable','sale_starts_at','sale_expired_at',
+        'is_return','is_trending','is_approved',
+        'sku','stock_status','product_thumbnail_id',
+        'slug','store_id','brand_id','status','created_at'
+    ]);
+}
 }
