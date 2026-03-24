@@ -6,6 +6,7 @@ use App\Models\Brand;
 use Illuminate\Http\Request;
 use App\Http\Requests\CreateBrandRequest;
 use App\Http\Requests\UpdateBrandRequest;
+use Illuminate\Database\Eloquent\Builder;
 use App\Repositories\Eloquents\BrandRepository;
 
 class BrandController extends Controller
@@ -128,6 +129,22 @@ class BrandController extends Controller
 
         if (isset($request->status)) {
             $brands = $brands->whereStatus($request->status);
+        }
+
+        if ($request->category_slug) {
+            $brands = $brands->whereHas('products', function ($query) use ($request) {
+                $query->whereHas('categories', function ($query) use ($request) {
+                    $query->where('slug', $request->category_slug);
+                })->where('status', 1);
+            });
+        }
+
+        if ($request->store_slug) {
+            $brands = $brands->whereHas('products', function ($query) use ($request) {
+                $query->whereHas('store', function ($query) use ($request) {
+                    $query->where('slug', $request->store_slug);
+                })->where('status', 1);
+            });
         }
 
         return $brands;
