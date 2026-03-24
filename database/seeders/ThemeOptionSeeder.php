@@ -332,7 +332,8 @@ class ThemeOptionSeeder extends Seeder
         'meta_description' => "Discover {$this->baseName} Marketplace – a vibrant online platform where vendors unite to showcase their products, creating a diverse shopping experience. Explore a wide range of offerings and connect with sellers on a single platform.",
         'og_title' =>  "{$this->baseName} Marketplace: Uniting Vendors for Shopping Excellence",
         'og_description' => "Experience a unique shopping journey at {$this->baseName} Marketplace, where vendors collaborate to provide a vast array of products. Explore, shop, and connect in one convenient destination.",
-        'og_image_id' => null
+        'og_image_id' => null,
+        'meta_robots' => 'index, follow'
       ],
     ];
 

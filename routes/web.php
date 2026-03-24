@@ -29,3 +29,5 @@ Route::get('/clear-cache', function() {
     Artisan::call('clear-compiled');
     Artisan::call('storage:link');
 });
+
+Route::get('/sitemap.xml', 'App\Http\Controllers\SitemapController@index');
