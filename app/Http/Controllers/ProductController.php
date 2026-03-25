@@ -475,8 +475,7 @@ if ($request->filled('brand')) {
 }
 
 return $product->with($relations)
-    ->withExists('digital_files')
-    ->withAvg('reviews', 'rating')
+    
     ->select([   // <-- sirf zaruri product columns
         'id','name','short_description','type','unit',
         'quantity','price','sale_price','discount',
