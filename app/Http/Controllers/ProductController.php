@@ -257,10 +257,21 @@ public function importStatus(Request $request)
             $product = $product->whereBetween('sale_price', [$request->min, $request->max]);
         }
 
+        // if ($request->filled('category')) {
+        //     $slugs = explode(',', $request->category);
+        //     $product = $product->whereHas('categories', function (Builder $categories) use($slugs) {
+        //         $categories->WhereIn('slug', $slugs);
+        //     });
+        // }
         if ($request->filled('category')) {
             $slugs = explode(',', $request->category);
-            $product = $product->whereHas('categories', function (Builder $categories) use($slugs) {
-                $categories->WhereIn('slug', $slugs);
+            $categoryIds = Cache::remember(
+                'cat_ids_' . md5($request->category),
+                86400,
+                fn() => \App\Models\Category::whereIn('slug', $slugs)->pluck('id')
+            );
+            $product = $product->whereHas('categories', function ($q) use ($categoryIds) {
+                $q->whereIn('category_id', $categoryIds);
             });
         }
 
