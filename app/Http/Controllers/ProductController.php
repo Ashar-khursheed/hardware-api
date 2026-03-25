@@ -93,7 +93,9 @@ public function importStatus(Request $request)
      */
     public function show(Product $product)
     {
-        return $this->repository->show($product->id);
+        return Cache::remember("product:{$product->id}", now()->addMinutes(30), function () use ($product) {
+                return $this->repository->show($product->id);
+        });    
     }
 
     /**
@@ -116,6 +118,7 @@ public function importStatus(Request $request)
      */
     public function update(UpdateProductRequest $request, Product $product)
     {
+        Cache::forget("product:{$product->id}");
         return $this->repository->update($request->all(), $product->getId($request));
     }
 
@@ -127,6 +130,7 @@ public function importStatus(Request $request)
      */
     public function destroy(Request $request, Product $product)
     {
+        Cache::forget("product:{$product->id}");
         return $this->repository->destroy($product->getId($request));
     }
 
