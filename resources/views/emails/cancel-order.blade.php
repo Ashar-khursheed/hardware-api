@@ -45,15 +45,15 @@
 
     <div class="order-info">
       <div class="info-row">
-        <span class="info-label">Order Number</span>
+        <span class="info-label">Order Number: </span>
         <span class="info-value">#{{ $order->order_number }}</span>
       </div>
       <div class="info-row">
-        <span class="info-label">Payment Status</span>
+        <span class="info-label">Payment Status: </span>
         <span class="info-value">{{ ucfirst($order->payment_status) }}</span>
       </div>
       <div class="info-row">
-        <span class="info-label">Order Status</span>
+        <span class="info-label">Order Status: </span>
         <span class="info-value">{{ $order->order_status->name }}</span>
       </div>
     </div>
