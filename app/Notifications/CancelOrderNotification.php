@@ -54,35 +54,21 @@ class CancelOrderNotification extends Notification
     {
         return (new MailMessage)
             ->subject("Order #{$this->order->order_number} Cancelled - Action Required")
-            ->line("Order #{$this->order->order_number} has been cancelled.")
-            ->line("Please take necessary actions.")
-            ->line("Order Payment Status: {$this->order->payment_status}")
-            ->line("Order Status: {$this->order->order_status->name}");
+            ->view('emails.cancel-order', ['order' => $this->order]);
     }
 
     public function toVendorMail(): MailMessage
     {
         return (new MailMessage)
             ->subject("Important: Order #{$this->order->order_number} Cancelled")
-            ->line("We regret to inform you that order #{$this->order->order_number} has been cancelled.")
-            ->line("Please review the order details and take necessary actions.")
-            ->line("Order Payment Status: {$this->order->payment_status}")
-            ->line("Order Status: {$this->order->order_status->name}");
+            ->view('emails.cancel-order', ['order' => $this->order]);
     }
 
     public function toConsumerMail(): MailMessage
     {
-        if ($this->order->consumer_id) {
-            $consumer = Helpers::getConsumerById($this->order->consumer_id);
-            if ($consumer) {
-                return (new MailMessage)
-                    ->subject("Your Order #{$this->order->order_number} has been cancelled")
-                    ->greeting("Hello {$consumer->name},")
-                    ->line("We regret to inform you that your order #{$this->order->order_number} has been cancelled.")
-                    ->line("Order Payment Status: {$this->order->payment_status}")
-                    ->line("Order Status: {$this->order->order_status->name}");
-            }
-        }
+        return (new MailMessage)
+            ->subject("Your Order #{$this->order->order_number} has been cancelled")
+            ->view('emails.cancel-order', ['order' => $this->order]);
     }
 
     /**

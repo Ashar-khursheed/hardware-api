@@ -49,22 +49,16 @@ class PendingOrderReminderNotification extends Notification
 
     public function toAdminMail(): MailMessage
     {
-        return  (new MailMessage)
+        return (new MailMessage)
             ->subject("Attention Needed: Order #{$this->order->order_number}")
-            ->line('An order has been pending for more than 24 hours and requires your attention.')
-            ->line('Order Payment Status: ' . $this->order->payment_status)
-            ->line('Current Order Status: ' . $this->order->order_status->name)
-            ->line('Please review the order status and take necessary action.');
+            ->view('emails.place-order', ['order' => $this->order]);
     }
 
     public function toVendorMail(): MailMessage
     {
         return (new MailMessage)
             ->subject("Action Required: Order #{$this->order->order_number}")
-            ->line('An order has been pending for more than 24 hours and requires your attention.')
-            ->line('Order Payment Status: ' . $this->order->payment_status)
-            ->line('Current Order Status: ' . $this->order->order_status->name)
-            ->line('Please update the order status as soon as possible.');
+            ->view('emails.place-order', ['order' => $this->order]);
     }
 
     /**
