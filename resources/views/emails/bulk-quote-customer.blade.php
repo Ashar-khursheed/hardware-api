@@ -77,22 +77,22 @@
 
     <div class="summary">
       <div class="s-row">
-        <span class="s-lbl">Part # / Product</span>
+        <span class="s-lbl">Part # / Product: </span>
         <span class="s-val">{{ $quote->part_number }}</span>
       </div>
       <div class="s-row">
-        <span class="s-lbl">Quantity</span>
+        <span class="s-lbl">Quantity: </span>
         <span class="s-val">{{ $quote->quantity }}</span>
       </div>
       @if($quote->org_name)
       <div class="s-row">
-        <span class="s-lbl">Organization</span>
+        <span class="s-lbl">Organization: </span>
         <span class="s-val">{{ $quote->org_name }}</span>
       </div>
       @endif
       @if($quote->urgency)
       <div class="s-row">
-        <span class="s-lbl">Urgency</span>
+        <span class="s-lbl">Urgency: </span>
         <span class="s-val">
           @php
             $labels = [
