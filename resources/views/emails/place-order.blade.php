@@ -34,7 +34,7 @@
     <div class="logo">
       <img src="https://d3243ix3g2hwoc.cloudfront.net/24995/hard.jpg" alt="Hardware Box Logo"/>
     </div>
-    <span class="status-badge">Order Confirmed</span>
+    <span class="status-badge">Order Placed</span>
   </div>
 
   <div class="body">
