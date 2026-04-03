@@ -20,13 +20,13 @@ class BulkQuoteController extends Controller
 
             // 2. Send emails (fail gracefully — don't block the response)
             try {
+                $adminEmail = env('ADMIN_EMAIL', 'support@thehardwarebox.com');
+
                 // Admin notification
-                Mail::to(config('mail.admin_address', env('ADMIN_EMAIL')))
-                    ->send(new BulkQuoteAdminMail($quote));
+                Mail::to($adminEmail)->send(new BulkQuoteAdminMail($quote));
 
                 // Customer confirmation
-                Mail::to($quote->email)
-                    ->send(new BulkQuoteCustomerMail($quote));
+                Mail::to($quote->email)->send(new BulkQuoteCustomerMail($quote));
             } catch (\Exception $mailException) {
                 Log::error('BulkQuote mail error: ' . $mailException->getMessage());
             }

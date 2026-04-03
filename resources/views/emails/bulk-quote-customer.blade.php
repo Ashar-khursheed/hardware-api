@@ -155,7 +155,7 @@
 
   {{-- Footer --}}
   <div class="footer">
-    <p>Questions? <a href="tel:+18554837810">+1 (855) 483-7810</a> &nbsp;|&nbsp; <a href="mailto:hello@hardwarebox.com">hello@hardwarebox.com</a></p>
+    <p>Questions? <a href="tel:+18554837810">+1 (855) 483-7810</a> &nbsp;|&nbsp; <a href="mailto:support@thehardwarebox.com">support@thehardwarebox.com</a></p>
     <p>© {{ date('Y') }} Hardware Box. All rights reserved.</p>
     <p style="margin-top:8px;">
       <a href="https://www.thehardwarebox.com/privacy-policy">Privacy Policy</a>
