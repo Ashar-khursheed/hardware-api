@@ -95,11 +95,12 @@
         <div class="info-value">
           @php
             $labels = [
-                'asap'     => 'ASAP (1–3 days)',
-                'week'     => 'Within a week',
-                'month'    => 'Within a month',
-                'flexible' => 'Flexible',
-                'future'   => 'Future Project'
+                'asap'        => 'ASAP (1–3 days)',
+                'week'        => 'Within a week',
+                'within_week' => 'Within a week',
+                'month'       => 'Within a month',
+                'flexible'    => 'Flexible',
+                'future'      => 'Future Project'
             ];
           @endphp
           {{ $labels[$quote->urgency] ?? 'Standard' }}

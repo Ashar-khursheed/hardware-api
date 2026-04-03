@@ -20,7 +20,7 @@ class BulkQuoteCustomerMail extends Mailable
     public function build()
     {
         return $this
-            ->subject('✅ Your Quote Request Was Received — Hardware Box')
+            ->subject('Your Quote Request Was Received — Hardware Box')
             ->view('emails.bulk-quote-customer');
     }
 }
