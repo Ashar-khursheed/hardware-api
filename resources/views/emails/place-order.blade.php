@@ -31,7 +31,7 @@ $currencySymbol = ($currencyCode == 'USD') ? "$" : Helpers::getDefaultCurrencySy
   .items-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #2d3748; }
   
   .summary-section { margin-top: 24px; border-top: 2px solid #f4f7f9; padding-top: 24px; }
-  .summary-box { width: 280px; margin-left: auto; }
+  .summary-box { width: 240px; margin-left: auto; }
   .summary-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; color: #4a5568; }
   .summary-row.total { border-top: 1px solid #edf2f7; margin-top: 8px; padding-top: 12px; font-weight: 800; color: #ff5050; font-size: 18px; }
 
@@ -107,19 +107,19 @@ $currencySymbol = ($currencyCode == 'USD') ? "$" : Helpers::getDefaultCurrencySy
     <div class="summary-section">
       <div class="summary-box">
         <div class="summary-row">
-          <span>Subtotal</span>
+          <span>Subtotal : </span>
           <span>{{ $currencySymbol }} {{ number_format($order->amount, 2) }}</span>
         </div>
         <div class="summary-row">
-          <span>Tax</span>
+          <span>Tax : </span>
           <span>{{ $currencySymbol }} {{ number_format($order->tax_total, 2) }}</span>
         </div>
         <div class="summary-row">
-          <span>Shipping</span>
+          <span>Shipping : </span>
           <span>{{ $currencySymbol }} {{ number_format($order->shipping_total, 2) }}</span>
         </div>
         <div class="summary-row total">
-          <span>Amount Paid</span>
+          <span>Amount Paid : </span>
           <span>{{ $currencySymbol }} {{ number_format($order->total, 2) }}</span>
         </div>
       </div>
