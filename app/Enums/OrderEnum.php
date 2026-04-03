@@ -3,10 +3,10 @@
 namespace App\Enums;
 
 enum OrderEnum:string {
-  const PENDING = 'pending';
-  const PROCESSING = 'processing';
-  const CANCELLED = 'cancelled';
-  const SHIPPED = 'shipped';
-  const OUT_FOR_DELIVERY = 'out_for_delivery';
-  const DELIVERED = 'delivered';
+  const PENDING = 'Pending';
+  const PROCESSING = 'Processing';
+  const CANCELLED = 'Cancelled';
+  const SHIPPED = 'Shipped';
+  const OUT_FOR_DELIVERY = 'Out For Delivery';
+  const DELIVERED = 'Delivered';
 }

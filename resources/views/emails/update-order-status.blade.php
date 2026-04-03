@@ -79,6 +79,10 @@ $currencySymbol = ($currencyCode == 'USD') ? "$" : Helpers::getDefaultCurrencySy
         <span>{{ $currencySymbol }} {{ number_format($order->amount, 2) }}</span>
       </div>
       <div class="summary-row">
+        <span>Tax</span>
+        <span>{{ $currencySymbol }} {{ number_format($order->tax_total, 2) }}</span>
+      </div>
+      <div class="summary-row">
         <span>Shipping</span>
         <span>{{ $currencySymbol }} {{ number_format($order->shipping_total, 2) }}</span>
       </div>

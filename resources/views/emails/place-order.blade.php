@@ -1,7 +1,7 @@
 @use('App\Helpers\Helpers')
 @php
 $currencyCode = Helpers::getDefaultCurrencyCode();
-$currencySymbol = ($currencyCode == 'INR') ? "Rs." : Helpers::getDefaultCurrencySymbol();
+$currencySymbol = ($currencyCode == 'USD') ? "$" : Helpers::getDefaultCurrencySymbol();
 @endphp
 <!DOCTYPE html>
 <html lang="en">
