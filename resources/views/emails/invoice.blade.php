@@ -4,204 +4,141 @@ $currencyCode = Helpers::getDefaultCurrencyCode();
 $currencySymbol = ($currencyCode == 'INR') ? "Rs." : Helpers::getDefaultCurrencySymbol();
 @endphp
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>{{ $settings['general']['site_title'] }}</title>
-</head>
-<style type="text/css">
-    body {
-        font-family: 'Roboto Condensed', sans-serif;
-    }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Invoice - {{ $order->order_number }}</title>
+<style>
+    body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #f8fafc; color: #1e293b; }
+    .invoice-container { max-width: 850px; margin: 40px auto; background: #fff; padding: 50px; border-radius: 12px; box-shadow: 0 4px 25px rgba(0,0,0,0.05); }
+    
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 50px; border-bottom: 2px solid #f1f5f9; padding-bottom: 30px; }
+    .logo-area img { width: 180px; }
+    .invoice-title { text-align: right; }
+    .invoice-title h1 { margin: 0; font-size: 32px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
+    .invoice-title p { margin: 5px 0 0; color: #64748b; font-weight: 600; font-size: 14px; }
 
-    .m-0 {
-        margin: 0px;
-    }
+    .details-grid { display: flex; gap: 40px; margin-bottom: 50px; }
+    .detail-col { flex: 1; }
+    .detail-col h3 { font-size: 12px; text-transform: uppercase; color: #94a3b8; letter-spacing: 1px; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; }
+    .detail-col p { margin: 4px 0; font-size: 13px; line-height: 1.6; color: #334155; }
+    .text-bold { font-weight: 700; color: #0f172a; }
 
-    .p-0 {
-        padding: 0px;
-    }
+    .items-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+    .items-table th { background: #f8fafc; padding: 15px; text-align: left; font-size: 12px; text-transform: uppercase; color: #64748b; border-bottom: 2px solid #e2e8f0; }
+    .items-table td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155; }
+    .items-table tr:last-child td { border-bottom: none; }
 
-    .pt-5 {
-        padding-top: 5px;
-    }
+    .summary-section { display: flex; justify-content: flex-end; margin-top: 20px; }
+    .summary-box { width: 300px; background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+    .summary-row.total { border-top: 1px solid #cbd5e1; margin-top: 10px; padding-top: 15px; font-size: 18px; font-weight: 800; color: #ff5050; }
 
-    .mt-10 {
-        margin-top: 10px;
-    }
+    .footer { text-align: center; margin-top: 50px; padding-top: 30px; border-top: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; line-height: 1.6; }
+    .footer a { color: #ff5050; text-decoration: none; }
 
-    .text-center {
-        text-align: center !important;
-    }
-
-    .w-100 {
-        width: 100%;
-    }
-
-    .w-50 {
-        width: 50%;
-    }
-
-    .w-85 {
-        width: 85%;
-    }
-
-    .w-15 {
-        width: 15%;
-    }
-
-    .logo img {
-        width: 200px;
-        height: 60px;
-    }
-
-    .gray-color {
-        color: #52a750a4;
-    }
-
-    .text-bold {
-        font-weight: bold;
-    }
-
-    .border {
-        border: 1px solid black;
-    }
-
-    table tr,
-    th,
-    td {
-        border: 1px solid #d2d2d2;
-        border-collapse: collapse;
-        padding: 7px 8px;
-    }
-
-    table tr th {
-        background: #F4F4F4;
-        font-size: 15px;
-    }
-
-    table tr td {
-        font-size: 13px;
-    }
-
-    table {
-        border-collapse: collapse;
-    }
-
-    .box-text p {
-        line-height: 10px;
-    }
-
-    .float-left {
-        float: left;
-    }
-
-    .float-right {
-        float: right;
-    }
-
-    .total-part {
-        font-size: 16px;
-        line-height: 12px;
-    }
-
-    .total-right p {
-        padding-right: 20px;
+    @media print {
+        body { background: #fff; }
+        .invoice-container { margin: 0; box-shadow: none; width: 100%; padding: 20px; }
     }
 </style>
-
+</head>
 <body>
-    <div class="head-title">
-        <h1 class="text-center m-0 p-0">{{ env('APP_NAME') }} - Invoice</h1>
-    </div>
-    <div class="add-detail mt-10">
-        <div class="w-50 float-left mt-10">
-            <p class="m-0 pt-5 text-bold w-100">Name - <span class="gray-color">{{$order->consumer['name']}}</span></p>
-            <p class="m-0 pt-5 text-bold w-100">Email - <span class="gray-color">{{$order->consumer['email']}}</span></p>
-            <p class="m-0 pt-5 text-bold w-100">Phone. - <span class="gray-color">(+{{$order->consumer['country_code']}}) - {{$order->consumer['phone']}}</span></p>
+<div class="invoice-container">
+    <div class="header" style="width: 100%; display: table; content: '';">
+        <div class="logo-area" style="display: table-cell; vertical-align: top;">
+            <img src="https://d3243ix3g2hwoc.cloudfront.net/24995/hard.jpg" alt="Logo"/>
         </div>
+        <div class="invoice-title" style="display: table-cell; vertical-align: top; text-align: right;">
+            <h1>Invoice</h1>
+            <p># {{ $order->order_number }}</p>
+        </div>
+    </div>
 
-        <div class="w-50 float-right mt-10">
-            <p class="m-0 pt-5 text-bold w-100">Order Numb. - <span class="gray-color">{{$order->order_number}}</span></p>
-            <p class="m-0 pt-5 text-bold w-100">Order Date - <span class="gray-color">{{$order->created_at->format("d/m/Y")}}</span></p>
-            <p class="m-0 pt-5 text-bold w-100">Payment Method - <span class="gray-color">{{$order->payment_method}}</span></p>
+    <div class="details-grid" style="width: 100%; display: table;">
+        <div class="detail-col" style="display: table-cell; width: 33%;">
+            <h3>Customer</h3>
+            <p class="text-bold">{{ $order->consumer['name'] }}</p>
+            <p>{{ $order->consumer['email'] }}</p>
+            <p>+{{ $order->consumer['country_code'] }} {{ $order->consumer['phone'] }}</p>
         </div>
-        <div style="clear: both;"></div>
+        <div class="detail-col" style="display: table-cell; width: 33%;">
+            <h3>Billing Address</h3>
+            <p>{{ $order->billing_address['street'] }}</p>
+            <p>{{ $order->billing_address['city'] }}, {{ $order->billing_address['pincode'] }}</p>
+            @if (isset($order->billing_address['state']) && isset($order->billing_address['country']))
+                <p>{{ $order->billing_address['state']['name'] }}, {{ $order->billing_address['country']['name'] }}</p>
+            @endif
+        </div>
+        @if (!$order->is_digital_only)
+        <div class="detail-col" style="display: table-cell; width: 33%;">
+            <h3>Shipping Address</h3>
+            <p>{{ $order->shipping_address['street'] }}</p>
+            <p>{{ $order->shipping_address['city'] }}, {{ $order->shipping_address['pincode'] }}</p>
+            @if (isset($order->shipping_address['state']) && isset($order->shipping_address['country']))
+                <p>{{ $order->shipping_address['state']['name'] }}, {{ $order->shipping_address['country']['name'] }}</p>
+            @endif
+        </div>
+        @endif
     </div>
-    <div class="table-section bill-tbl w-100 mt-10">
-        <table class="table w-100 mt-10">
+
+    <table class="items-table">
+        <thead>
             <tr>
-                <th class="w-50">Billing Address</th>
-                @if (!$order->is_digital_only)
-                <th class="w-50">Shipping Address</th>
-                @endif
+                <th style="width: 40%">Product Description</th>
+                <th style="text-align: center">Price</th>
+                <th style="text-align: center">Qty</th>
+                <th style="text-align: right">Total</th>
             </tr>
+        </thead>
+        <tbody>
+            @foreach ($order->products as $product)
             <tr>
                 <td>
-                    <div class="box-text">
-                        <p>{{$order->billing_address['street']}}</p>
-                        <p>{{$order->billing_address['pincode']}},</p>
-                        <p>{{$order->billing_address['city']}},</p>
-                        @if (isset($order->billing_address['state']) && isset($order->billing_address['country']))
-                            <p>{{$order->billing_address['state']['name']}}, {{$order->billing_address['country']['name']}}</p>
-                        @endif
-                        <p>Contact: ({{$order->billing_address['country_code']}}) {{$order->billing_address['phone']}}</p>
-                    </div>
+                    <span class="text-bold">{{ $product->name }}</span>
                 </td>
-                @if (!$order->is_digital_only)
-                <p>{{$order->shipping_address['street']}}</p>
-                <p>{{$order->shipping_address['pincode']}},</p>
-                <p>{{$order->shipping_address['city']}},</p>
-                @if (isset($order->shipping_address['state']) && isset($order->shipping_address['country']))
-                    <p>{{$order->shipping_address['state']['name']}}, {{$order->shipping_address['country']['name']}}</p>
-                @endif
-                <p>Contact: ({{$order->shipping_address['country_code']}}) {{$order->shipping_address['phone']}}</p>
-                @endif
-            </tr>
-        </table>
-    </div>
-    <div class="table-section bill-tbl w-100 mt-10">
-        <table class="table w-100 mt-10">
-            <tr>
-                <th class="w-50">No</th>
-                <th class="w-50">Product Name</th>
-                <th class="w-50">Price</th>
-                <th class="w-50">Qty</th>
-                <th class="w-50">Subtotal</th>
-                <th class="w-50">Shipping Cost</th>
-                <th class="w-50">Grand Total</th>
-            </tr>
-            @foreach ($order->products as $no => $product)
-            <tr align="center">
-                <td>{{++$no}}</td>
-                <td>{{$product->name}}</td>
-                <td>{{$currencySymbol}} {{$product->pivot->single_price}}</td>
-                <td>{{$product->pivot->quantity}}</td>
-                <td>{{$currencySymbol}} {{$product->pivot->subtotal}}</td>
-                <td>{{$currencySymbol}} {{$product->pivot->shipping_cost}}</td>
-                <td>{{$currencySymbol}} {{$product->pivot->subtotal + $product->pivot->shipping_cost + $product->pivot->tax}}</td>
+                <td style="text-align: center">{{ $currencySymbol }} {{ number_format($product->pivot->single_price, 2) }}</td>
+                <td style="text-align: center">{{ $product->pivot->quantity }}</td>
+                <td style="text-align: right">{{ $currencySymbol }} {{ number_format($product->pivot->subtotal, 2) }}</td>
             </tr>
             @endforeach
-            <tr>
-                <td colspan="7">
-                    <div class="total-part">
-                        <div class="total-left w-85 float-left" align="right">
-                            <p>Sub Total</p>
-                            <p>Tax</p>
-                            <p>Shipping</p>
-                            <p>Total Payable</p>
-                        </div>
-                        <div class="total-right w-15 float-left text-bold" align="right">
-                            <p>{{$currencySymbol}} {{$order->amount}}</p>
-                            <p>{{$currencySymbol}} {{$order->tax_total}}</p>
-                            <p>{{$currencySymbol}} {{$order->shipping_total}}</p>
-                            <p>{{$currencySymbol}} {{$order->total}}</p>
-                        </div>
-                        <div style="clear: both;"></div>
-                    </div>
-                </td>
-            </tr>
-        </table>
+        </tbody>
+    </table>
+
+    <div class="summary-section" style="width: 100%; display: table;">
+        <div style="display: table-cell; width: 60%;">
+            <div style="padding: 20px; background: #fff9f5; border-radius: 8px; border: 1px solid #ffeada; font-size: 13px; color: #c2410c;">
+                <strong>Payment Method:</strong> {{ $order->payment_method }}<br>
+                <strong>Date:</strong> {{ $order->created_at->format("M d, Y") }}
+            </div>
+        </div>
+        <div style="display: table-cell; width: 40%;">
+            <div class="summary-box" style="float: right;">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span>{{ $currencySymbol }} {{ number_format($order->amount, 2) }}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Tax</span>
+                    <span>{{ $currencySymbol }} {{ number_format($order->tax_total, 2) }}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Shipping</span>
+                    <span>{{ $currencySymbol }} {{ number_format($order->shipping_total, 2) }}</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Grand Total</span>
+                    <span>{{ $currencySymbol }} {{ number_format($order->total, 2) }}</span>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <div class="footer">
+        <p>Thank you for your business! For any queries, contact us at <strong>support@thehardwarebox.com</strong></p>
+        <p>Hardware Box &nbsp;·&nbsp; <a href="https://thehardwarebox.com">thehardwarebox.com</a></p>
+    </div>
+</div>
+</body>
 </html>
