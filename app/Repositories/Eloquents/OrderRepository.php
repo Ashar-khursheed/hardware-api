@@ -419,9 +419,7 @@ class OrderRepository extends BaseRepository
 
             DB::commit();
 
-            $order = $order->fresh();
-            $order->products;
-            $order->sub_orders;
+            $order = $order->fresh(config('enums.order.with'));
             $order->billing_address;
             $order->shipping_address;
             $order->order_status_activities;
@@ -694,7 +692,7 @@ class OrderRepository extends BaseRepository
                         'order_status_id' => Helpers::getOrderStatusIdByName(OrderEnum::CANCELLED)
                     ]);
 
-                    $order = $order->fresh();
+                    $order = $order->fresh(config('enums.order.with'));
                     Helpers::updateProductStock($order);
                     event(new CancelOrderEvent($order));
                 }

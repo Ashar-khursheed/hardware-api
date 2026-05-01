@@ -16,7 +16,7 @@ trait PaymentTrait {
     ]);
 
     Order::where('parent_id', $order->id)->update(['payment_status' => $status]);
-    $order = $order->fresh();
+    $order = $order->fresh(config('enums.order.with'));
 
     Helpers::updateProductStock($order);
     return $order;
@@ -28,7 +28,7 @@ trait PaymentTrait {
       'payment_method' => $method
     ]);
 
-    $order = $order->fresh();
+    $order = $order->fresh(config('enums.order.with'));
     return $order;
   }
 
