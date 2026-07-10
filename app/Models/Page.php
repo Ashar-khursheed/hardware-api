@@ -29,6 +29,7 @@ class Page extends Model
         'content',
         'meta_title',
         'meta_description',
+        'schema',
         'page_meta_image_id',
         'status',
         'created_by_id'

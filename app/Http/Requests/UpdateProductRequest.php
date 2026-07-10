@@ -48,6 +48,7 @@ class UpdateProductRequest extends FormRequest
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'product_type' =>  ['required','in:physical,digital,external'],
+            'schema' => ['nullable', 'string'],
             'store_id' => ['nullable','exists:stores,id,deleted_at,NULL'],
             'type' => ['required','in:simple,classified'],
             'discount' => ['nullable','numeric','regex:/^([0-9]{1,2}){1}(\.[0-9]{1,2})?$/'],

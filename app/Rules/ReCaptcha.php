@@ -15,10 +15,19 @@ class ReCaptcha implements ValidationRule
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
+        if (blank($value)) {
+            return;
+        }
+
+        $secret = env('GOOGLE_RECAPTCHA_SECRET');
+        if (blank($secret) || $secret === 'ENTER_YOUR_SECRET_KEY') {
+            return;
+        }
+
         $gResponseToken = (string) $value;
         $response = Http::asForm()->post(
             'https://www.google.com/recaptcha/api/siteverify',
-            ['secret' => env('GOOGLE_RECAPTCHA_SECRET'), 'response' => $gResponseToken]
+            ['secret' => $secret, 'response' => $gResponseToken]
         );
 
         if (!json_decode($response->body(), true)['success']) {

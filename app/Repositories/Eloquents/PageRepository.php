@@ -62,6 +62,7 @@ class PageRepository extends BaseRepository
                 'meta_description' => $request->meta_description,
                 'page_meta_image_id' => $request->page_meta_image_id,
                 'status' => $request->status,
+                'schema' => $request['schema'],
             ]);
 
             $page->page_meta_image;

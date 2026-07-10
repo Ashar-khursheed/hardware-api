@@ -22,7 +22,9 @@ class Category extends Model implements HasMedia
 
     public $translatable = [
         'name',
+        'heading',
         'description',
+        'content',
         'meta_title',
         'meta_description',
     ];
@@ -34,8 +36,10 @@ class Category extends Model implements HasMedia
      */
     protected $fillable = [
         'name',
+        'heading',
         'slug',
         'description',
+        'content',
         'category_image_id',
         'category_icon_id',
         'category_meta_image_id',
@@ -53,8 +57,6 @@ class Category extends Model implements HasMedia
         'category_image:id,name,disk,mime_type,file_name',
         'category_meta_image:id,name,disk,mime_type,file_name',
         'category_icon:id,name,disk,mime_type,file_name',
-        'zones:id,name',
-        'exclude_zones:id,name'
     ];
 
     protected $withCount = [

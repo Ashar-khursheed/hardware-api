@@ -14,7 +14,7 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 class CategoryImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError
 {
     private $categories = [];
-    private $translateFields = ['name','description', 'meta_title', 'meta_description'];
+    private $translateFields = ['name','description', 'content', 'meta_title', 'meta_description'];
     public function rules(): array
     {
         return [

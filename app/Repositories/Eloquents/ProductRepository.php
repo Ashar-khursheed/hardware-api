@@ -67,6 +67,15 @@ class ProductRepository extends BaseRepository
         return true;
     }
 
+    public function resolveProductThumbnail($product)
+    {
+        if (!$product->product_thumbnail_id && $product->product_galleries?->isNotEmpty()) {
+            $product->setRelation('product_thumbnail', $product->product_galleries->first());
+        }
+
+        return $product;
+    }
+
     public function show($id)
     {
         try {
@@ -78,6 +87,7 @@ class ProductRepository extends BaseRepository
 
             $product->makeVisible(config('enums.product.visible'));
             $product->setAppends(config('enums.product.appends'));
+            $this->resolveProductThumbnail($product);
             if ($this->verifySingleProduct($product)) {
                 return $product;
             }
@@ -207,10 +217,12 @@ class ProductRepository extends BaseRepository
                 'preview_type' => $request->preview_type,
                 'is_licensekey_auto' => $request->is_licensekey_auto,
                 'preview_audio_file_id' => $request->preview_audio_file_id,
-                'preview_video_file_id' => $request->preview_video_file_id
+                'preview_video_file_id' => $request->preview_video_file_id,
+                'schema' => $request->schema,
             ]);
 
             $this->relationProductModels($request, $product);
+            $this->syncProductThumbnailFromGallery($product, $request);
             if (isset($request['variations']) && !empty($request['variations']) && $request->type == 'classified') {
                 foreach ($request['variations'] as $index => $variation) {
                     $this->createProductVariation($product, $variation);
@@ -303,6 +315,8 @@ class ProductRepository extends BaseRepository
                 $product->product_galleries()->sync($gallery_ids ?? $request['product_galleries_id'], false);
                 $product->product_galleries;
             }
+
+            $this->syncProductThumbnailFromGallery($product, $request);
 
             if (isset($request['categories'])) {
                 $product->categories()->sync($request['categories']);
@@ -624,6 +638,24 @@ public function export($request = null)
         return $license_key;
     }
 
+  /**
+     * When only gallery images are uploaded, use the first gallery image as thumbnail.
+     */
+    public function syncProductThumbnailFromGallery($product, $request)
+    {
+        $request = is_array($request) ? $request : $request->all();
+        $thumbnailId = $request['product_thumbnail_id'] ?? $product->product_thumbnail_id;
+        $galleryIds = $request['product_galleries_id'] ?? null;
+
+        if (empty($thumbnailId) && !empty($galleryIds)) {
+            $firstGalleryId = is_array($galleryIds) ? head($galleryIds) : $galleryIds;
+            if ($firstGalleryId) {
+                $product->product_thumbnail_id = $firstGalleryId;
+                $product->save();
+            }
+        }
+    }
+
     public function relationProductModels($request, $product)
     {
         $related_product_ids = null;
@@ -827,11 +859,13 @@ public function export($request = null)
     {
         try {
 
-            return $this->model->where('slug', $slug)
+            $product = $this->model->where('slug', $slug)
                 ->with(config('enums.product.with'))
                 ->firstOrFail()
                 ->setAppends(config('enums.product.appends'))
                 ->makeVisible(config('enums.product.visible'));
+
+            return $this->resolveProductThumbnail($product);
 
         } catch (Exception $e) {
 

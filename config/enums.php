@@ -49,6 +49,7 @@ return [
     ],
     'product' => [
         'with' => [
+            'product_thumbnail',
             'product_galleries',
             'size_chart_image',
             'store:id,store_name,slug,description,store_logo_id,hide_vendor_email,hide_vendor_phone,vendor_id',

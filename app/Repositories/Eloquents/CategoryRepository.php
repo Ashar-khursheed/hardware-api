@@ -37,7 +37,9 @@ class CategoryRepository extends BaseRepository
 
             $category =  $this->model->create([
                 'name' => $request->name,
+                'heading' => $request->heading,
                 'description' => $request->description,
+                'content' => $request->content,
                 'type' => $request->type,
                 'status' => $request->status,
                 'meta_title' => $request->meta_title,

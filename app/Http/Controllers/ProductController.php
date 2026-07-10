@@ -487,7 +487,7 @@ return $product->with($relations)
         'is_sale_enable','sale_starts_at','sale_expired_at',
         'is_return','is_trending','is_approved',
         'sku','stock_status','product_thumbnail_id',
-        'slug','store_id','brand_id','status','created_at'
+        'slug','store_id','brand_id','status','created_at','schema'
     ]);
 }
 }
