@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\ReCaptcha;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BulkQuoteRequest extends FormRequest
@@ -22,6 +23,7 @@ class BulkQuoteRequest extends FormRequest
             'quantity'    => 'required|string|max:50',
             'urgency'     => 'nullable',
             'description' => 'nullable|string|max:2000',
+            'recaptcha'   => ['nullable', new ReCaptcha],
         ];
     }
 

@@ -28,7 +28,9 @@ class CreateCategoryRequest extends FormRequest
     {
         return [
             'name'  => ['required', 'string', 'max:255', Rule::unique('categories')->where('type', $this->type)->whereNull('deleted_at')],
+            'heading' => ['nullable','string','max:255'],
             'description' => ['nullable','string'],
+            'content' => ['nullable','string'],
             'parent_id' => ['nullable','exists:categories,id,deleted_at,NULL'],
             'category_image_id' => ['nullable','exists:attachments,id,deleted_at,NULL'],
             'category_icon_id' => ['nullable','exists:attachments,id,deleted_at,NULL'],

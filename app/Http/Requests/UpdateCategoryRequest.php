@@ -34,7 +34,9 @@ class UpdateCategoryRequest extends FormRequest
 
         return [
             'name'  => ['max:255', UniqueTranslationRule::for('categories')->where('type', $this->type)->whereNull('deleted_at')->ignore($id)],
+            'heading' => ['nullable','string','max:255'],
             'description' => ['nullable','string'],
+            'content' => ['nullable','string'],
             'parent_id' => ['nullable','exists:categories,id,deleted_at,NULL'],
             'commission_rate' => ['nullable', 'regex:/^([0-9]{1,2}){1}(\.[0-9]{1,2})?$/'],
             'category_image_id' => ['nullable','exists:attachments,id'],

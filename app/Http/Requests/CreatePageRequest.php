@@ -32,6 +32,7 @@ class CreatePageRequest extends FormRequest
             'meta_description' => ['nullable','string'],
             'page_meta_image_id' => ['nullable','exists:attachments,id,deleted_at,NULL'],
             'status' => ['required','min:0','max:1'],
+            'schema' => ['nullable', 'string'],
         ];
     }
 

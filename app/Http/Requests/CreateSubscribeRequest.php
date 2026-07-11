@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\ReCaptcha;
 use Illuminate\Foundation\Http\FormRequest;
 use App\GraphQL\Exceptions\ExceptionHandler;
 use Illuminate\Contracts\Validation\Validator;
@@ -27,6 +28,7 @@ class CreateSubscribeRequest extends FormRequest
     {
         return [
             'email' => ['required', 'email', 'unique:subscribes,email,NULL,id,deleted_at,NULL'],
+            'recaptcha' => ['nullable', new ReCaptcha],
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\ReCaptcha;
 use Illuminate\Foundation\Http\FormRequest;
 use App\GraphQL\Exceptions\ExceptionHandler;
 use Illuminate\Contracts\Validation\Validator;
@@ -28,6 +29,7 @@ class QuestionAndAnswerRequest extends FormRequest
         return [
             'question'  => ['required', 'string'],
             'product_id' => ['exists:products,id,deleted_at,NULL','required'],
+            'recaptcha' => ['nullable', new ReCaptcha],
         ];
     }
 

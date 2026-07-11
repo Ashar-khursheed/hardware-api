@@ -100,6 +100,7 @@ class Product extends Model implements HasMedia
         'is_licensekey_auto',
         'preview_audio_file_id',
         'preview_video_file_id',
+        'schema',
     ];
 
     protected $with = [
@@ -110,7 +111,6 @@ class Product extends Model implements HasMedia
         'read_document',
         'attributes',
         'brand:id,name,slug,status',
-        'authors',
         'publication',
     ];
 
@@ -237,7 +237,11 @@ class Product extends Model implements HasMedia
 
     public function getAuthorsIdAttribute()
     {
-        return $this->authors->pluck('id')->toArray();
+        try {
+            return $this->authors->pluck('id')->toArray();
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     public function getRelatedProductsAttribute()

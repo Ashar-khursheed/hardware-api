@@ -242,6 +242,7 @@ class AuthController extends Controller
                 'password_confirmation' => 'required',
                 'country_code' => 'required',
                 'phone' => 'required|min:9|unique:users,phone,NULL,id,deleted_at,NULL',
+                'recaptcha' => ['nullable', new ReCaptcha],
             ]);
 
             if ($validator->fails()) {

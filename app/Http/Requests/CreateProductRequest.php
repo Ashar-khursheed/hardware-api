@@ -32,6 +32,7 @@ class CreateProductRequest extends FormRequest
         $rules = [
             'name'  => ['required', 'string', 'max:255'],
             'product_type' =>  ['required','in:physical,digital,external'],
+            'schema' => ['nullable', 'string'],
             'description' => ['required', 'string', 'min:10'],
             'short_description' => ['required', 'string'],
             'store_id' => ['nullable','exists:stores,id,deleted_at,NULL'],

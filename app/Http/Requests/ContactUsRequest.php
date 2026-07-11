@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use App\GraphQL\Exceptions\ExceptionHandler;
+use App\Rules\ReCaptcha;
 use Illuminate\Contracts\Validation\Validator;
 
 class ContactUsRequest extends FormRequest
@@ -31,6 +32,7 @@ class ContactUsRequest extends FormRequest
             'phone' =>  ['required'],
             'subject' => ['required', 'string'],
             'message' => ['required','string'],
+            'recaptcha' => ['nullable', new ReCaptcha],
         ];
     }
 

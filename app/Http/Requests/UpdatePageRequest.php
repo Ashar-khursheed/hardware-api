@@ -33,11 +33,12 @@ class UpdatePageRequest extends FormRequest
             'meta_description' => ['nullable','string'],
             'page_meta_image_id' => ['nullable','exists:attachments,id,deleted_at,NULL'],
             'status' => ['required','min:0','max:1'],
+            'schema' => ['nullable', 'string'],
         ];
     }
 
     public function failedValidation(Validator $validator)
-    {
+    {   
         throw new ExceptionHandler($validator->errors()->first(), 422);
     }
 }
