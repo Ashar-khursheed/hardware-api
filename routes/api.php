@@ -178,7 +178,10 @@ Route::post('/contact-us', 'App\Http\Controllers\ContactUsController@contactUs')
 Route::get('/sitemap', 'App\Http\Controllers\SitemapController@getData');
 
 // Checkout
+use App\Http\Controllers\Api\ShipStationController;
+Route::post('/shipstation/rates', [ShipStationController::class, 'getRates']);
 Route::post('checkout','App\Http\Controllers\CheckoutController@verifyCheckout');
+
 
 // Place Order
 Route::post('order', 'App\Http\Controllers\OrderController@store');

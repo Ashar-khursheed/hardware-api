@@ -333,7 +333,12 @@ trait CheckoutTrait
         }
       }
 
+      if (isset($request->shipping_cost) && is_numeric($request->shipping_cost)) {
+        $shippingTotal = floatval($request->shipping_cost);
+      }
+
       $total +=  array_sum($tax) + $shippingTotal;
+
       $itemTotal = [
         'tax_total' => $this->formatDecimal(array_sum($tax)),
         'shipping_total' => $this->formatDecimal($shippingTotal),
