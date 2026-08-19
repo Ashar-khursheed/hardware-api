@@ -34,6 +34,7 @@ class UpdateBlogRequest extends FormRequest
             'tags' => ['nullable','exists:tags,id,deleted_at,NULL'],
             'is_featured' => ['min:0','max:1'],
             'is_sticky' => ['min:0','max:1'],
+            'schema' => ['nullable', 'string'],
         ];
     }
 

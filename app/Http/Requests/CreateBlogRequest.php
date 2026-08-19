@@ -35,6 +35,7 @@ class CreateBlogRequest extends FormRequest
             'is_featured' => ['nullable','min:0','max:1'],
             'is_sticky' => ['nullable','min:0','max:1'],
             'status' => ['nullable','required','min:0','max:1'],
+            'schema' => ['nullable', 'string'],
         ];
     }
 

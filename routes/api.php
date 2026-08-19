@@ -84,6 +84,8 @@ Route::apiResource('category', 'App\Http\Controllers\CategoryController',[
   'only' => ['index', 'show'],
 ]);
 Route::get('category/slug/{slug}', 'App\Http\Controllers\CategoryController@getCategoryBySlug');
+Route::get('category-filters', 'App\Http\Controllers\CategoryFilterController@index');
+Route::get('category-filters/skus', 'App\Http\Controllers\CategoryFilterController@matchingSkus');
 
 // Tags
 Route::apiResource('tag', 'App\Http\Controllers\TagController', [

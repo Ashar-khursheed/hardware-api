@@ -61,6 +61,7 @@ class BlogRepository extends BaseRepository
                 'title' => $request->title,
                 'description'=> $request->description,
                 'content' => $request->content,
+                'schema' => $request->schema,
                 'blog_thumbnail_id'=> $request->blog_thumbnail_id,
                 'blog_meta_image_id'=> $request->blog_meta_image_id,
                 'meta_title' => $request->meta_title,
