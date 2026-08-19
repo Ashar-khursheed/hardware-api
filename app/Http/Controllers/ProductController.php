@@ -378,6 +378,56 @@ if ($request->filled('brand')) {
             });
         }
 
+        // Category-scoped dynamic filters: connector:rj45,usb-c;length:30cm,1m
+        // AND across groups, OR within a group — match by SKU map and/or product links
+        if ($request->filled('category_filters')) {
+            $groups = array_filter(preg_split('/[|;]/', $request->category_filters));
+            $categorySlug = $request->category ? head(explode(',', $request->category)) : null;
+            $categoryId = null;
+            if ($categorySlug) {
+                $categoryId = \App\Models\Category::where('slug', $categorySlug)->value('id');
+            }
+
+            foreach ($groups as $group) {
+                if (!str_contains($group, ':')) {
+                    continue;
+                }
+                [$groupSlug, $valuesStr] = explode(':', $group, 2);
+                $valueSlugs = array_values(array_filter(array_map('trim', explode(',', $valuesStr))));
+                if ($groupSlug === '' || empty($valueSlugs)) {
+                    continue;
+                }
+
+                $normalizedSkus = [];
+                if ($categoryId) {
+                    $normalizedSkus = \App\Http\Controllers\CategoryFilterController::resolveMatchingSkus(
+                        (int) $categoryId,
+                        $groupSlug . ':' . implode(',', $valueSlugs)
+                    );
+                }
+
+                $product = $product->where(function (Builder $outer) use ($groupSlug, $valueSlugs, $normalizedSkus) {
+                    $outer->whereHas('categoryFilterValues', function (Builder $q) use ($groupSlug, $valueSlugs) {
+                        $q->whereIn('slug', $valueSlugs)
+                            ->whereHas('filterGroup', function (Builder $gq) use ($groupSlug) {
+                                $gq->where('slug', $groupSlug)->where('status', true);
+                            });
+                    });
+
+                    if (!empty($normalizedSkus)) {
+                        $outer->orWhere(function (Builder $skuQuery) use ($normalizedSkus) {
+                            foreach ($normalizedSkus as $sku) {
+                                $skuQuery->orWhereRaw(
+                                    "UPPER(TRIM(TRAILING '=' FROM TRIM(sku))) = ?",
+                                    [$sku]
+                                );
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
         if ($request->filled('price')) {
             $ranges = explode(',', $request->price);
             foreach($ranges as $range) {
