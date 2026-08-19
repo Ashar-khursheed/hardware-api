@@ -508,6 +508,19 @@ class Product extends Model implements HasMedia
     }
 
     /**
+     * Category-scoped dynamic filter values (Connector, Length, Voltage, etc.)
+     */
+    public function categoryFilterValues(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            CategoryFilterValue::class,
+            'product_category_filter_values',
+            'product_id',
+            'category_filter_value_id'
+        )->withTimestamps();
+    }
+
+    /**
      * @return BelongsToMany
      */
     public function orders(): BelongsToMany

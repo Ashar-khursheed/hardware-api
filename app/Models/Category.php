@@ -172,6 +172,14 @@ class Category extends Model implements HasMedia
     }
 
     /**
+     * Dynamic filter groups for this category (Connector, Length, etc.)
+     */
+    public function filterGroups(): HasMany
+    {
+        return $this->hasMany(CategoryFilterGroup::class)->orderBy('sort_order')->orderBy('name');
+    }
+
+    /**
      * @return BelongsToMany
      */
     public function blogs(): BelongsToMany

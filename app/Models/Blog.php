@@ -35,6 +35,7 @@ class Blog extends Model implements HasMedia
         'slug',
         'description',
         'content',
+        'schema',
         'blog_thumbnail_id',
         'blog_meta_image_id',
         'meta_title',
