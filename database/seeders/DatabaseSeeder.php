@@ -24,5 +24,6 @@ class DatabaseSeeder extends Seeder
         $this->call(ThemeOptionSeeder::class);
         $this->call(MenuSeeder::class);
         $this->call(OrderStatusSeeder::class);
+        $this->call(CategoryFilterSeeder::class);
     }
 }
