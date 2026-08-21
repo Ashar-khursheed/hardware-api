@@ -31,6 +31,7 @@ class UpdateBlogRequest extends FormRequest
             'categories' => ['nullable','exists:categories,id,deleted_at,NULL'],
             'blog_thumbnail_id' => ['nullable','exists:attachments,id,deleted_at,NULL'],
             'blog_meta_image_id' => ['nullable','exists:attachments,id,deleted_at,NULL'],
+            'thumbnail_alt' => ['nullable', 'string'],
             'tags' => ['nullable','exists:tags,id,deleted_at,NULL'],
             'is_featured' => ['min:0','max:1'],
             'is_sticky' => ['min:0','max:1'],

@@ -22,7 +22,8 @@ class Blog extends Model implements HasMedia
         'description',
         'content',
         'meta_title',
-        'meta_description'
+        'meta_description',
+        'thumbnail_alt'
     ];
 
     /**
@@ -38,6 +39,7 @@ class Blog extends Model implements HasMedia
         'schema',
         'blog_thumbnail_id',
         'blog_meta_image_id',
+        'thumbnail_alt',
         'meta_title',
         'meta_description',
         'is_featured',

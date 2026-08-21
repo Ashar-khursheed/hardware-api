@@ -18,6 +18,7 @@ type Blog {
     blog_meta_image: Attachment
     categories: [Category]
     tags: [Tag]
+    thumbnail_alt: String
 }
 
 input CreateBlogInput {
@@ -29,6 +30,7 @@ input CreateBlogInput {
     meta_description: String
     blog_thumbnail_id: Int
     blog_meta_image_id: Int
+    thumbnail_alt: String
     is_featured: Int
     is_sticky: Int
     status: Int
@@ -46,6 +48,7 @@ input UpdateBlogInput {
     meta_description: String
     blog_thumbnail_id: Int
     blog_meta_image_id: Int
+    thumbnail_alt: String
     is_featured: Int
     is_sticky: Int
     status: Int
