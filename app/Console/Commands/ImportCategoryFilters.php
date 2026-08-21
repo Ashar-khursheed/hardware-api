@@ -187,6 +187,45 @@ class ImportCategoryFilters extends Command
                     continue;
                 }
 
+                // Apply cleanup logic based on category and group
+                $cleanedValue = $rawValue;
+
+                // 1. Skip spreadsheet error values entirely
+                if (strcasecmp($cleanedValue, '#VALUE!') === 0 || strcasecmp($cleanedValue, '#N/A') === 0 || strcasecmp($cleanedValue, 'N/A') === 0) {
+                    continue;
+                }
+
+                // 2. Memories / Speed cleanup
+                if ($category->slug === 'memories' && $groupSlug === 'speed') {
+                    // Remove spacing before MHz (case-insensitively) and make it standard "MHz"
+                    $cleanedValue = preg_replace('/\s*mhz\b/i', 'MHz', $cleanedValue);
+                    // Remove "(N/A)" or "N/A"
+                    $cleanedValue = preg_replace('/\s*\(?N\/A\)?/i', '', $cleanedValue);
+                    $cleanedValue = trim($cleanedValue);
+                }
+
+                // 3. Storage devices / Cache cleanup
+                if ($category->slug === 'storage-devices' && $groupSlug === 'cache') {
+                    // Remove spacing before MB (case-insensitively) and make it standard "MB"
+                    $cleanedValue = preg_replace('/\s*mb\b/i', 'MB', $cleanedValue);
+                    $cleanedValue = trim($cleanedValue);
+                }
+
+                // 4. Motherboards / Chipset cleanup
+                if ($category->slug === 'motherboards' && $groupSlug === 'chipset') {
+                    // Remove leading "N/A " or "(N/A)"
+                    $cleanedValue = preg_replace('/^N\/A\s+/i', '', $cleanedValue);
+                    $cleanedValue = preg_replace('/\s*\(?N\/A\)?/i', '', $cleanedValue);
+                    $cleanedValue = trim($cleanedValue);
+                }
+
+                // Skip if clean value is empty or remains an error
+                if ($cleanedValue === '' || strcasecmp($cleanedValue, '#VALUE!') === 0) {
+                    continue;
+                }
+
+                $rawValue = $cleanedValue;
+
                 // Preserve "+" (e.g. AM3+ vs AM3, FM2+ vs FM2) so values don't collide
                 $normalizedValue = str_replace(
                     ['+', '.', '/', '\\'],
